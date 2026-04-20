@@ -1,0 +1,1838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neural Networks – Complete Reference Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=Lora:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #060d1f;
+  --bg2:      #0b1530;
+  --bg3:      #0f1e3d;
+  --card:     #0d1a35;
+  --card2:    #111f40;
+  --border:   #1a2d55;
+  --blue:     #3b82f6;
+  --blue2:    #60a5fa;
+  --cyan:     #22d3ee;
+  --green:    #34d399;
+  --amber:    #fbbf24;
+  --rose:     #fb7185;
+  --violet:   #a78bfa;
+  --text:     #e2e8f0;
+  --text2:    #94a3b8;
+  --text3:    #4a6080;
+  --mono:     'IBM Plex Mono', monospace;
+  --display:  'Syne', sans-serif;
+  --body:     'Lora', serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.75;
+  overflow-x: hidden;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--blue); }
+
+/* ── NAV ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(6,13,31,0.92);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 56px;
+}
+.nav-brand {
+  font-family: var(--display);
+  font-weight: 800; font-size: 1rem;
+  color: var(--cyan);
+  letter-spacing: 0.05em;
+  text-decoration: none;
+}
+.nav-links {
+  display: flex; gap: 0.25rem;
+  list-style: none;
+  overflow-x: auto;
+}
+.nav-links a {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text2);
+  text-decoration: none;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.nav-links a:hover { color: var(--cyan); background: rgba(34,211,238,0.07); }
+
+/* ── HERO ── */
+.hero {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 80px 2rem 4rem;
+  position: relative;
+  overflow: hidden;
+}
+.hero-bg {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(59,130,246,0.12) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 80% 80%, rgba(34,211,238,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 30% 30% at 20% 60%, rgba(167,139,250,0.06) 0%, transparent 60%);
+}
+.hero-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
+}
+.hero-content {
+  position: relative; z-index: 1;
+  max-width: 900px; width: 100%;
+  text-align: center;
+}
+.hero-tag {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--cyan);
+  border: 1px solid rgba(34,211,238,0.3);
+  padding: 0.3rem 1rem;
+  border-radius: 100px;
+  margin-bottom: 1.5rem;
+  letter-spacing: 0.1em;
+  animation: fadeUp 0.6s ease both;
+}
+.hero h1 {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(2.8rem, 8vw, 5.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin-bottom: 1.25rem;
+  animation: fadeUp 0.6s 0.1s ease both;
+}
+.hero h1 span { color: var(--blue2); }
+.hero-sub {
+  font-size: 1.1rem;
+  color: var(--text2);
+  max-width: 560px;
+  margin: 0 auto 2.5rem;
+  animation: fadeUp 0.6s 0.2s ease both;
+  font-family: var(--body);
+}
+.hero-pills {
+  display: flex; flex-wrap: wrap; gap: 0.6rem;
+  justify-content: center;
+  margin-bottom: 3rem;
+  animation: fadeUp 0.6s 0.3s ease both;
+}
+.pill {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  padding: 0.35rem 0.9rem;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  color: var(--text2);
+  background: var(--card);
+}
+.hero-nn { animation: fadeUp 0.8s 0.4s ease both; }
+
+/* ── LAYOUT ── */
+.page { max-width: 1000px; margin: 0 auto; padding: 0 2rem; }
+
+/* ── SECTIONS ── */
+section { padding: 5rem 0; border-top: 1px solid var(--border); }
+.section-label {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--cyan);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+.section-title {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  letter-spacing: -0.02em;
+  margin-bottom: 1rem;
+  line-height: 1.1;
+}
+.section-intro {
+  font-size: 1.05rem;
+  color: var(--text2);
+  max-width: 700px;
+  margin-bottom: 3rem;
+}
+
+/* ── CARDS ── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.75rem;
+  transition: border-color 0.3s, transform 0.3s;
+}
+.card:hover { border-color: var(--blue); transform: translateY(-2px); }
+.card-grid { display: grid; gap: 1.25rem; }
+.card-grid.cols2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.card-grid.cols3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.card-icon {
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+}
+.card h3 {
+  font-family: var(--display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+.card p { color: var(--text2); font-size: 0.95rem; }
+
+/* ── CALLOUT BOXES ── */
+.callout {
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  margin: 1.75rem 0;
+  border-left: 3px solid;
+  display: flex; gap: 1rem; align-items: flex-start;
+}
+.callout-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 0.1rem; }
+.callout-body { flex: 1; }
+.callout-title { font-family: var(--display); font-weight: 700; font-size: 0.9rem; margin-bottom: 0.25rem; }
+.callout-text { font-size: 0.93rem; color: var(--text2); }
+.callout.blue  { background: rgba(59,130,246,0.08);  border-color: var(--blue);   }
+.callout.blue  .callout-title { color: var(--blue2); }
+.callout.green { background: rgba(52,211,153,0.08);  border-color: var(--green);  }
+.callout.green .callout-title { color: var(--green); }
+.callout.amber { background: rgba(251,191,36,0.08);  border-color: var(--amber);  }
+.callout.amber .callout-title { color: var(--amber); }
+.callout.rose  { background: rgba(251,113,133,0.08); border-color: var(--rose);   }
+.callout.rose  .callout-title { color: var(--rose);  }
+.callout.violet{ background: rgba(167,139,250,0.08); border-color: var(--violet); }
+.callout.violet .callout-title { color: var(--violet); }
+
+/* ── CODE ── */
+pre {
+  background: #020812;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 1.7;
+}
+.kw  { color: #c792ea; }
+.fn  { color: #82aaff; }
+.str { color: #c3e88d; }
+.cm  { color: #4a6080; font-style: italic; }
+.num { color: #f78c6c; }
+.var { color: #eeffff; }
+.op  { color: var(--cyan); }
+
+/* ── FORMULA ── */
+.formula {
+  background: #020812;
+  border: 1px solid rgba(34,211,238,0.2);
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  margin: 1.25rem 0;
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  color: var(--cyan);
+  text-align: center;
+}
+.formula .comment { color: var(--text3); font-size: 0.78rem; display: block; margin-top: 0.4rem; }
+
+/* ── TABLES ── */
+.tbl-wrap { overflow-x: auto; margin: 1.5rem 0; border-radius: 12px; border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  background: var(--bg3);
+  color: var(--text2);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.85rem 1.1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+tbody td {
+  padding: 0.8rem 1.1rem;
+  font-size: 0.9rem;
+  color: var(--text2);
+  border-bottom: 1px solid rgba(26,45,85,0.5);
+  vertical-align: top;
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: rgba(59,130,246,0.04); }
+.badge {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 100px;
+  font-weight: 500;
+}
+.badge-blue   { background: rgba(59,130,246,0.15);  color: var(--blue2); }
+.badge-green  { background: rgba(52,211,153,0.15);  color: var(--green); }
+.badge-amber  { background: rgba(251,191,36,0.15);  color: var(--amber); }
+.badge-violet { background: rgba(167,139,250,0.15); color: var(--violet); }
+.badge-rose   { background: rgba(251,113,133,0.15); color: var(--rose);  }
+.badge-cyan   { background: rgba(34,211,238,0.15);  color: var(--cyan);  }
+
+/* ── SVG DIAGRAM CONTAINERS ── */
+.diagram-wrap {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2rem;
+  margin: 2rem 0;
+  overflow-x: auto;
+}
+.diagram-title {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--text3);
+  letter-spacing: 0.1em;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  text-transform: uppercase;
+}
+svg text { font-family: var(--mono); }
+
+/* ── INTERVIEW Q&A ── */
+.qa-block { margin-bottom: 1.5rem; }
+.qa-q {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+  padding: 1rem 1.25rem;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 0.98rem;
+  color: var(--cyan);
+  cursor: pointer;
+  display: flex; justify-content: space-between; align-items: center;
+  user-select: none;
+  transition: background 0.2s;
+}
+.qa-q:hover { background: var(--card2); }
+.qa-q .tag {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--text3);
+  font-weight: 400;
+}
+.qa-a {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  padding: 1.25rem 1.5rem;
+  color: var(--text2);
+  font-size: 0.95rem;
+  display: none;
+}
+.qa-a.open { display: block; }
+.qa-a ul { margin-top: 0.75rem; padding-left: 1.25rem; }
+.qa-a ul li { margin-bottom: 0.4rem; }
+.qa-chevron { transition: transform 0.2s; font-size: 0.8rem; }
+.qa-q.active .qa-chevron { transform: rotate(180deg); }
+
+/* ── CHEATSHEET GRID ── */
+.cheat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+.cheat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.1rem;
+}
+.cheat-card .label {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--text3);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+}
+.cheat-card .value {
+  font-family: var(--mono);
+  font-size: 0.88rem;
+  color: var(--cyan);
+  font-weight: 500;
+}
+
+/* ── ACTIVATION VISUAL ── */
+.activation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin: 2rem 0;
+}
+.act-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.25rem;
+  text-align: center;
+  transition: border-color 0.3s;
+}
+.act-card:hover { border-color: var(--blue); }
+.act-name {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 0.3rem;
+}
+.act-formula {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--text3);
+  margin-bottom: 0.75rem;
+}
+.act-use {
+  font-size: 0.8rem;
+  color: var(--text2);
+}
+
+/* ── PROGRESS / PIPELINE ── */
+.pipeline {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin: 2rem 0;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+.pipe-step {
+  flex: 1; min-width: 110px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 0.75rem;
+  text-align: center;
+  position: relative;
+}
+.pipe-step:not(:last-child)::after {
+  content: '→';
+  position: absolute; right: -14px; top: 50%; transform: translateY(-50%);
+  color: var(--text3); font-size: 1rem; z-index: 1;
+}
+.pipe-num {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--cyan);
+  margin-bottom: 0.3rem;
+}
+.pipe-label {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 0.8rem;
+  margin-bottom: 0.2rem;
+}
+.pipe-sub { font-size: 0.7rem; color: var(--text3); }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+@keyframes float {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-8px); }
+}
+@keyframes dash {
+  to { stroke-dashoffset: 0; }
+}
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* ── TOC ── */
+.toc {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2rem;
+  margin: 3rem 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+.toc-item {
+  display: flex; align-items: center; gap: 0.6rem;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--text2);
+  text-decoration: none;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.toc-item:hover { color: var(--cyan); background: rgba(34,211,238,0.06); }
+.toc-item .toc-num { color: var(--text3); font-size: 0.7rem; width: 20px; }
+
+/* ── FOOTER ── */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 3rem 2rem;
+  text-align: center;
+  color: var(--text3);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+}
+
+/* ── RESPONSIVE ── */
+@media(max-width:640px) {
+  .pipeline { flex-direction: column; }
+  .pipe-step:not(:last-child)::after { content: '↓'; right: auto; top: auto; bottom: -14px; left: 50%; transform: translateX(-50%); }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-brand" href="#">⬡ NEURAL NETWORKS</a>
+  <ul class="nav-links">
+    <li><a href="#intro">Intro</a></li>
+    <li><a href="#perceptron">Perceptron</a></li>
+    <li><a href="#activations">Activations</a></li>
+    <li><a href="#forward">Forward Pass</a></li>
+    <li><a href="#loss">Loss</a></li>
+    <li><a href="#backprop">Backprop</a></li>
+    <li><a href="#training">Training</a></li>
+    <li><a href="#regularization">Regularization</a></li>
+    <li><a href="#architectures">Architectures</a></li>
+    <li><a href="#interview">Interview Q&amp;A</a></li>
+    <li><a href="#cheatsheet">Cheatsheet</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-content">
+    <div class="hero-tag">Complete Reference Guide · Interview Prep · Concept Refresher</div>
+    <h1>Neural <span>Networks</span></h1>
+    <p class="hero-sub">From a single perceptron to deep learning architectures — everything you need to understand, explain, and apply neural networks.</p>
+    <div class="hero-pills">
+      <span class="pill">Perceptrons</span>
+      <span class="pill">Activations</span>
+      <span class="pill">Backpropagation</span>
+      <span class="pill">Gradient Descent</span>
+      <span class="pill">CNNs · RNNs · Transformers</span>
+      <span class="pill">Interview Q&amp;A</span>
+    </div>
+
+    <!-- HERO SVG: Animated Neural Network -->
+    <div class="hero-nn">
+      <svg width="100%" viewBox="0 0 700 220" fill="none" xmlns="http://www.w3.org/2000/svg" style="max-width:700px;margin:0 auto;display:block;">
+        <defs>
+          <radialGradient id="ng" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.4"/>
+            <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
+          </radialGradient>
+          <filter id="glow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <!-- INPUT layer -->
+        <text x="60" y="18" fill="#4a6080" font-size="10" text-anchor="middle" font-family="IBM Plex Mono">INPUT</text>
+        <circle cx="60" cy="55"  r="18" fill="#0d1a35" stroke="#3b82f6" stroke-width="1.5" filter="url(#glow)"/>
+        <circle cx="60" cy="110" r="18" fill="#0d1a35" stroke="#3b82f6" stroke-width="1.5" filter="url(#glow)"/>
+        <circle cx="60" cy="165" r="18" fill="#0d1a35" stroke="#3b82f6" stroke-width="1.5" filter="url(#glow)"/>
+        <text x="60" y="59"  fill="#60a5fa" font-size="9" text-anchor="middle">x₁</text>
+        <text x="60" y="114" fill="#60a5fa" font-size="9" text-anchor="middle">x₂</text>
+        <text x="60" y="169" fill="#60a5fa" font-size="9" text-anchor="middle">x₃</text>
+
+        <!-- HIDDEN 1 -->
+        <text x="230" y="18" fill="#4a6080" font-size="10" text-anchor="middle" font-family="IBM Plex Mono">HIDDEN 1</text>
+        <circle cx="230" cy="40"  r="18" fill="#0d1a35" stroke="#22d3ee" stroke-width="1.5" filter="url(#glow)"/>
+        <circle cx="230" cy="90"  r="18" fill="#0d1a35" stroke="#22d3ee" stroke-width="1.5" filter="url(#glow)"/>
+        <circle cx="230" cy="140" r="18" fill="#0d1a35" stroke="#22d3ee" stroke-width="1.5" filter="url(#glow)"/>
+        <circle cx="230" cy="190" r="18" fill="#0d1a35" stroke="#22d3ee" stroke-width="1.5" filter="url(#glow)"/>
+        <text x="230" y="44"  fill="#22d3ee" font-size="9" text-anchor="middle">h₁</text>
+        <text x="230" y="94"  fill="#22d3ee" font-size="9" text-anchor="middle">h₂</text>
+        <text x="230" y="144" fill="#22d3ee" font-size="9" text-anchor="middle">h₃</text>
+        <text x="230" y="194" fill="#22d3ee" font-size="9" text-anchor="middle">h₄</text>
+
+        <!-- HIDDEN 2 -->
+        <text x="400" y="18" fill="#4a6080" font-size="10" text-anchor="middle" font-family="IBM Plex Mono">HIDDEN 2</text>
+        <circle cx="400" cy="55"  r="18" fill="#0d1a35" stroke="#a78bfa" stroke-width="1.5" filter="url(#glow)"/>
+        <circle cx="400" cy="110" r="18" fill="#0d1a35" stroke="#a78bfa" stroke-width="1.5" filter="url(#glow)"/>
+        <circle cx="400" cy="165" r="18" fill="#0d1a35" stroke="#a78bfa" stroke-width="1.5" filter="url(#glow)"/>
+        <text x="400" y="59"  fill="#a78bfa" font-size="9" text-anchor="middle">h₅</text>
+        <text x="400" y="114" fill="#a78bfa" font-size="9" text-anchor="middle">h₆</text>
+        <text x="400" y="169" fill="#a78bfa" font-size="9" text-anchor="middle">h₇</text>
+
+        <!-- OUTPUT -->
+        <text x="570" y="18" fill="#4a6080" font-size="10" text-anchor="middle" font-family="IBM Plex Mono">OUTPUT</text>
+        <circle cx="570" cy="80"  r="22" fill="#0d1a35" stroke="#34d399" stroke-width="2" filter="url(#glow)"/>
+        <circle cx="570" cy="140" r="22" fill="#0d1a35" stroke="#34d399" stroke-width="2" filter="url(#glow)"/>
+        <text x="570" y="84"  fill="#34d399" font-size="9" text-anchor="middle">ŷ₁</text>
+        <text x="570" y="144" fill="#34d399" font-size="9" text-anchor="middle">ŷ₂</text>
+
+        <!-- Connections: Input → H1 -->
+        <g stroke="#1a2d55" stroke-width="0.8" opacity="0.6">
+          <line x1="78" y1="55"  x2="212" y2="40"/>  <line x1="78" y1="55"  x2="212" y2="90"/>
+          <line x1="78" y1="55"  x2="212" y2="140"/> <line x1="78" y1="55"  x2="212" y2="190"/>
+          <line x1="78" y1="110" x2="212" y2="40"/>  <line x1="78" y1="110" x2="212" y2="90"/>
+          <line x1="78" y1="110" x2="212" y2="140"/> <line x1="78" y1="110" x2="212" y2="190"/>
+          <line x1="78" y1="165" x2="212" y2="40"/>  <line x1="78" y1="165" x2="212" y2="90"/>
+          <line x1="78" y1="165" x2="212" y2="140"/> <line x1="78" y1="165" x2="212" y2="190"/>
+        </g>
+        <!-- Connections: H1 → H2 -->
+        <g stroke="#1a2d55" stroke-width="0.8" opacity="0.6">
+          <line x1="248" y1="40"  x2="382" y2="55"/>  <line x1="248" y1="40"  x2="382" y2="110"/>
+          <line x1="248" y1="40"  x2="382" y2="165"/>
+          <line x1="248" y1="90"  x2="382" y2="55"/>  <line x1="248" y1="90"  x2="382" y2="110"/>
+          <line x1="248" y1="90"  x2="382" y2="165"/>
+          <line x1="248" y1="140" x2="382" y2="55"/>  <line x1="248" y1="140" x2="382" y2="110"/>
+          <line x1="248" y1="140" x2="382" y2="165"/>
+          <line x1="248" y1="190" x2="382" y2="55"/>  <line x1="248" y1="190" x2="382" y2="110"/>
+          <line x1="248" y1="190" x2="382" y2="165"/>
+        </g>
+        <!-- Connections: H2 → Output -->
+        <g stroke="#1a2d55" stroke-width="0.8" opacity="0.6">
+          <line x1="418" y1="55"  x2="548" y2="80"/>  <line x1="418" y1="55"  x2="548" y2="140"/>
+          <line x1="418" y1="110" x2="548" y2="80"/>  <line x1="418" y1="110" x2="548" y2="140"/>
+          <line x1="418" y1="165" x2="548" y2="80"/>  <line x1="418" y1="165" x2="548" y2="140"/>
+        </g>
+        <!-- Active signal lines (highlighted) -->
+        <g stroke="#3b82f6" stroke-width="1.5" opacity="0.6">
+          <line x1="78" y1="110" x2="212" y2="90" stroke-dasharray="4 3">
+            <animate attributeName="stroke-dashoffset" from="100" to="0" dur="2s" repeatCount="indefinite"/>
+          </line>
+          <line x1="248" y1="90" x2="382" y2="110" stroke="#22d3ee" stroke-dasharray="4 3">
+            <animate attributeName="stroke-dashoffset" from="100" to="0" dur="2s" begin="0.5s" repeatCount="indefinite"/>
+          </line>
+          <line x1="418" y1="110" x2="548" y2="80" stroke="#a78bfa" stroke-dasharray="4 3">
+            <animate attributeName="stroke-dashoffset" from="100" to="0" dur="2s" begin="1s" repeatCount="indefinite"/>
+          </line>
+        </g>
+        <!-- Labels below -->
+        <text x="60"  y="210" fill="#4a6080" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">Features</text>
+        <text x="315" y="210" fill="#4a6080" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">Learned Representations</text>
+        <text x="570" y="210" fill="#4a6080" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">Prediction</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- TABLE OF CONTENTS -->
+<div class="page" style="padding-top:2rem;">
+  <div class="toc reveal">
+    <a class="toc-item" href="#intro">      <span class="toc-num">01</span> What is a Neural Network</a>
+    <a class="toc-item" href="#perceptron"> <span class="toc-num">02</span> The Perceptron</a>
+    <a class="toc-item" href="#activations"><span class="toc-num">03</span> Activation Functions</a>
+    <a class="toc-item" href="#forward">    <span class="toc-num">04</span> Feed Forward Process</a>
+    <a class="toc-item" href="#loss">       <span class="toc-num">05</span> Loss Functions</a>
+    <a class="toc-item" href="#backprop">   <span class="toc-num">06</span> Backpropagation</a>
+    <a class="toc-item" href="#training">   <span class="toc-num">07</span> Training Concepts</a>
+    <a class="toc-item" href="#regularization"><span class="toc-num">08</span> Regularization</a>
+    <a class="toc-item" href="#architectures"><span class="toc-num">09</span> Architectures</a>
+    <a class="toc-item" href="#interview">  <span class="toc-num">10</span> Interview Q&amp;A</a>
+    <a class="toc-item" href="#cheatsheet"> <span class="toc-num">11</span> Cheatsheet</a>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 1: INTRO -->
+<!-- ══════════════════════════════════════════════════ -->
+<section id="intro">
+<div class="page">
+  <div class="section-label">Section 01</div>
+  <h2 class="section-title reveal">What is a Neural Network?</h2>
+  <p class="section-intro reveal">A neural network is a computational model loosely inspired by biological neurons in the brain. It learns to map inputs to outputs by adjusting millions of numerical parameters called weights.</p>
+
+  <div class="card-grid cols3 reveal">
+    <div class="card">
+      <div class="card-icon" style="background:rgba(59,130,246,0.12);">🧠</div>
+      <h3>Biological Inspiration</h3>
+      <p>Brain neurons fire when stimulated past a threshold. Artificial neurons mimic this: they compute a weighted sum of inputs and pass the result through an activation function.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon" style="background:rgba(52,211,153,0.12);">📐</div>
+      <h3>Universal Approximator</h3>
+      <p>The Universal Approximation Theorem states that a neural network with one hidden layer of sufficient width can approximate any continuous function — the foundation of deep learning's power.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon" style="background:rgba(251,191,36,0.12);">🔁</div>
+      <h3>Learning by Iteration</h3>
+      <p>Networks don't start knowing anything. They learn by seeing many examples, measuring how wrong their predictions are, and nudging weights in the direction that reduces error.</p>
+    </div>
+  </div>
+
+  <!-- Layer Diagram SVG -->
+  <div class="diagram-wrap reveal">
+    <div class="diagram-title">Three-Layer Architecture with Data Flow</div>
+    <svg viewBox="0 0 800 260" width="100%" xmlns="http://www.w3.org/2000/svg">
+      <!-- Background zones -->
+      <rect x="10"  y="30" width="160" height="210" rx="12" fill="rgba(59,130,246,0.05)"  stroke="rgba(59,130,246,0.15)"  stroke-width="1"/>
+      <rect x="230" y="30" width="340" height="210" rx="12" fill="rgba(34,211,238,0.05)"  stroke="rgba(34,211,238,0.15)"  stroke-width="1"/>
+      <rect x="630" y="30" width="160" height="210" rx="12" fill="rgba(52,211,153,0.05)"  stroke="rgba(52,211,153,0.15)"  stroke-width="1"/>
+
+      <!-- Labels -->
+      <text x="90"  y="22" fill="#3b82f6" font-size="11" text-anchor="middle" font-family="IBM Plex Mono" font-weight="500">INPUT LAYER</text>
+      <text x="400" y="22" fill="#22d3ee" font-size="11" text-anchor="middle" font-family="IBM Plex Mono" font-weight="500">HIDDEN LAYERS</text>
+      <text x="710" y="22" fill="#34d399" font-size="11" text-anchor="middle" font-family="IBM Plex Mono" font-weight="500">OUTPUT LAYER</text>
+
+      <!-- Input neurons -->
+      <circle cx="90" cy="80"  r="20" fill="#0b1530" stroke="#3b82f6" stroke-width="2"/><text x="90" y="85"  fill="#3b82f6" font-size="10" text-anchor="middle">x₁</text>
+      <circle cx="90" cy="145" r="20" fill="#0b1530" stroke="#3b82f6" stroke-width="2"/><text x="90" y="150" fill="#3b82f6" font-size="10" text-anchor="middle">x₂</text>
+      <circle cx="90" cy="210" r="20" fill="#0b1530" stroke="#3b82f6" stroke-width="2"/><text x="90" y="215" fill="#3b82f6" font-size="10" text-anchor="middle">x₃</text>
+
+      <!-- Hidden layer 1 -->
+      <circle cx="310" cy="60"  r="20" fill="#0b1530" stroke="#22d3ee" stroke-width="1.5"/><text x="310" y="65"  fill="#22d3ee" font-size="10" text-anchor="middle">h₁</text>
+      <circle cx="310" cy="113" r="20" fill="#0b1530" stroke="#22d3ee" stroke-width="1.5"/><text x="310" y="118" fill="#22d3ee" font-size="10" text-anchor="middle">h₂</text>
+      <circle cx="310" cy="166" r="20" fill="#0b1530" stroke="#22d3ee" stroke-width="1.5"/><text x="310" y="171" fill="#22d3ee" font-size="10" text-anchor="middle">h₃</text>
+      <circle cx="310" cy="219" r="20" fill="#0b1530" stroke="#22d3ee" stroke-width="1.5"/><text x="310" y="224" fill="#22d3ee" font-size="10" text-anchor="middle">h₄</text>
+
+      <!-- Hidden layer 2 -->
+      <circle cx="490" cy="80"  r="20" fill="#0b1530" stroke="#a78bfa" stroke-width="1.5"/><text x="490" y="85"  fill="#a78bfa" font-size="10" text-anchor="middle">h₅</text>
+      <circle cx="490" cy="145" r="20" fill="#0b1530" stroke="#a78bfa" stroke-width="1.5"/><text x="490" y="150" fill="#a78bfa" font-size="10" text-anchor="middle">h₆</text>
+      <circle cx="490" cy="210" r="20" fill="#0b1530" stroke="#a78bfa" stroke-width="1.5"/><text x="490" y="215" fill="#a78bfa" font-size="10" text-anchor="middle">h₇</text>
+
+      <!-- Output neurons -->
+      <circle cx="710" cy="113" r="22" fill="#0b1530" stroke="#34d399" stroke-width="2"/><text x="710" y="118" fill="#34d399" font-size="10" text-anchor="middle">ŷ₁</text>
+      <circle cx="710" cy="177" r="22" fill="#0b1530" stroke="#34d399" stroke-width="2"/><text x="710" y="182" fill="#34d399" font-size="10" text-anchor="middle">ŷ₂</text>
+
+      <!-- Connections Input→H1 -->
+      <g stroke="#1e2d50" stroke-width="0.8">
+        <line x1="110" y1="80"  x2="290" y2="60"/>  <line x1="110" y1="80"  x2="290" y2="113"/>
+        <line x1="110" y1="80"  x2="290" y2="166"/> <line x1="110" y1="80"  x2="290" y2="219"/>
+        <line x1="110" y1="145" x2="290" y2="60"/>  <line x1="110" y1="145" x2="290" y2="113"/>
+        <line x1="110" y1="145" x2="290" y2="166"/> <line x1="110" y1="145" x2="290" y2="219"/>
+        <line x1="110" y1="210" x2="290" y2="60"/>  <line x1="110" y1="210" x2="290" y2="113"/>
+        <line x1="110" y1="210" x2="290" y2="166"/> <line x1="110" y1="210" x2="290" y2="219"/>
+      </g>
+      <!-- Connections H1→H2 -->
+      <g stroke="#1e2d50" stroke-width="0.8">
+        <line x1="330" y1="60"  x2="470" y2="80"/>  <line x1="330" y1="60"  x2="470" y2="145"/> <line x1="330" y1="60"  x2="470" y2="210"/>
+        <line x1="330" y1="113" x2="470" y2="80"/>  <line x1="330" y1="113" x2="470" y2="145"/> <line x1="330" y1="113" x2="470" y2="210"/>
+        <line x1="330" y1="166" x2="470" y2="80"/>  <line x1="330" y1="166" x2="470" y2="145"/> <line x1="330" y1="166" x2="470" y2="210"/>
+        <line x1="330" y1="219" x2="470" y2="80"/>  <line x1="330" y1="219" x2="470" y2="145"/> <line x1="330" y1="219" x2="470" y2="210"/>
+      </g>
+      <!-- Connections H2→Output -->
+      <g stroke="#1e2d50" stroke-width="0.8">
+        <line x1="510" y1="80"  x2="688" y2="113"/> <line x1="510" y1="80"  x2="688" y2="177"/>
+        <line x1="510" y1="145" x2="688" y2="113"/> <line x1="510" y1="145" x2="688" y2="177"/>
+        <line x1="510" y1="210" x2="688" y2="113"/> <line x1="510" y1="210" x2="688" y2="177"/>
+      </g>
+
+      <!-- Annotations -->
+      <text x="90"  y="248" fill="#4a6080" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">Raw features</text>
+      <text x="310" y="248" fill="#4a6080" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">Low-level patterns</text>
+      <text x="490" y="248" fill="#4a6080" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">High-level features</text>
+      <text x="710" y="248" fill="#4a6080" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">Prediction</text>
+    </svg>
+  </div>
+
+  <div class="callout blue reveal">
+    <span class="callout-icon">💡</span>
+    <div class="callout-body">
+      <div class="callout-title">Key Insight: Hierarchical Learning</div>
+      <div class="callout-text">Each layer learns progressively more abstract features. In image recognition: Layer 1 detects edges → Layer 2 detects shapes → Layer 3 detects textures → Layer 4 detects object parts → Output identifies the object.</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 2: PERCEPTRON -->
+<!-- ══════════════════════════════════════════════════ -->
+<section id="perceptron">
+<div class="page">
+  <div class="section-label">Section 02</div>
+  <h2 class="section-title reveal">The Perceptron — Core Building Block</h2>
+  <p class="section-intro reveal">The perceptron (artificial neuron) is the fundamental unit. It takes multiple inputs, multiplies each by a learned weight, sums them up, adds a bias, then passes the result through an activation function.</p>
+
+  <!-- Perceptron SVG -->
+  <div class="diagram-wrap reveal">
+    <div class="diagram-title">Single Neuron — Complete Computation</div>
+    <svg viewBox="0 0 760 200" width="100%" xmlns="http://www.w3.org/2000/svg">
+      <!-- Inputs -->
+      <rect x="10" y="30" width="90" height="32" rx="6" fill="rgba(59,130,246,0.1)" stroke="#3b82f6" stroke-width="1"/>
+      <text x="55" y="50" fill="#60a5fa" font-size="11" text-anchor="middle" font-family="IBM Plex Mono">x₁ = 0.8</text>
+      <rect x="10" y="84" width="90" height="32" rx="6" fill="rgba(59,130,246,0.1)" stroke="#3b82f6" stroke-width="1"/>
+      <text x="55" y="104" fill="#60a5fa" font-size="11" text-anchor="middle" font-family="IBM Plex Mono">x₂ = 0.3</text>
+      <rect x="10" y="138" width="90" height="32" rx="6" fill="rgba(59,130,246,0.1)" stroke="#3b82f6" stroke-width="1"/>
+      <text x="55" y="158" fill="#60a5fa" font-size="11" text-anchor="middle" font-family="IBM Plex Mono">x₃ = 0.5</text>
+
+      <!-- Weights on lines -->
+      <line x1="100" y1="46"  x2="260" y2="95" stroke="#3b82f6" stroke-width="1.5"/>
+      <line x1="100" y1="100" x2="260" y2="100" stroke="#3b82f6" stroke-width="1.5"/>
+      <line x1="100" y1="154" x2="260" y2="105" stroke="#3b82f6" stroke-width="1.5"/>
+      <rect x="130" y="32" width="54" height="20" rx="4" fill="#0b1530"/>
+      <text x="157" y="46" fill="#fbbf24" font-size="10" text-anchor="middle" font-family="IBM Plex Mono">w₁=0.5</text>
+      <rect x="130" y="88" width="54" height="20" rx="4" fill="#0b1530"/>
+      <text x="157" y="102" fill="#fbbf24" font-size="10" text-anchor="middle" font-family="IBM Plex Mono">w₂=0.9</text>
+      <rect x="130" y="144" width="54" height="20" rx="4" fill="#0b1530"/>
+      <text x="157" y="158" fill="#fbbf24" font-size="10" text-anchor="middle" font-family="IBM Plex Mono">w₃=0.2</text>
+
+      <!-- Summation node -->
+      <circle cx="300" cy="100" r="38" fill="#0d1a35" stroke="#22d3ee" stroke-width="2"/>
+      <text x="300" y="95" fill="#22d3ee" font-size="18" text-anchor="middle">Σ</text>
+      <text x="300" y="113" fill="#4a6080" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">+ bias b</text>
+
+      <!-- Bias input -->
+      <rect x="262" y="148" width="76" height="22" rx="5" fill="rgba(251,191,36,0.1)" stroke="#fbbf24" stroke-width="1"/>
+      <text x="300" y="163" fill="#fbbf24" font-size="10" text-anchor="middle" font-family="IBM Plex Mono">b = −0.1</text>
+      <line x1="300" y1="148" x2="300" y2="138" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3 2"/>
+
+      <!-- z output label -->
+      <line x1="338" y1="100" x2="410" y2="100" stroke="#22d3ee" stroke-width="1.5"/>
+      <rect x="358" y="83" width="58" height="20" rx="4" fill="#0b1530"/>
+      <text x="387" y="97" fill="#22d3ee" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">z = 0.74</text>
+
+      <!-- Activation node -->
+      <rect x="410" y="62" width="100" height="76" rx="12" fill="#0d1a35" stroke="#a78bfa" stroke-width="2"/>
+      <text x="460" y="96" fill="#a78bfa" font-size="12" text-anchor="middle" font-family="IBM Plex Mono">f(z)</text>
+      <text x="460" y="113" fill="#4a6080" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">ReLU</text>
+
+      <!-- Output -->
+      <line x1="510" y1="100" x2="580" y2="100" stroke="#34d399" stroke-width="2"/>
+      <rect x="580" y="82" width="90" height="36" rx="8" fill="rgba(52,211,153,0.12)" stroke="#34d399" stroke-width="1.5"/>
+      <text x="625" y="97" fill="#34d399" font-size="10" text-anchor="middle" font-family="IBM Plex Mono">a = 0.74</text>
+      <text x="625" y="111" fill="#4a6080" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">activation</text>
+
+      <!-- Labels -->
+      <text x="300" y="185" fill="#4a6080" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">Weighted Sum</text>
+      <text x="460" y="152" fill="#4a6080" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">Non-linearity</text>
+    </svg>
+  </div>
+
+  <h3 style="font-family:var(--display);font-size:1.3rem;margin:2rem 0 1rem;color:var(--text);">The Math Step by Step</h3>
+
+  <div class="formula reveal">
+    z = w₁x₁ + w₂x₂ + w₃x₃ + b = (0.5×0.8) + (0.9×0.3) + (0.2×0.5) + (−0.1) = 0.74
+    <span class="comment">Step 1: Linear combination (pre-activation value z)</span>
+  </div>
+  <div class="formula reveal">
+    a = f(z) = ReLU(0.74) = max(0, 0.74) = 0.74
+    <span class="comment">Step 2: Apply activation function to get output a</span>
+  </div>
+
+  <pre class="reveal"><span class="cm"># General form</span>
+<span class="var">z</span> <span class="op">=</span> <span class="fn">sum</span>(<span class="var">w_i</span> <span class="op">*</span> <span class="var">x_i</span>) <span class="op">+</span> <span class="var">b</span>      <span class="cm"># or in vector form: z = W·x + b</span>
+<span class="var">a</span> <span class="op">=</span> <span class="fn">f</span>(<span class="var">z</span>)                       <span class="cm"># activation function applied</span>
+
+<span class="cm"># In NumPy:</span>
+<span class="var">z</span> <span class="op">=</span> <span class="var">np</span>.<span class="fn">dot</span>(<span class="var">W</span>, <span class="var">x</span>) <span class="op">+</span> <span class="var">b</span>
+<span class="var">a</span> <span class="op">=</span> <span class="var">np</span>.<span class="fn">maximum</span>(<span class="num">0</span>, <span class="var">z</span>)            <span class="cm"># ReLU</span></pre>
+
+  <div class="callout amber reveal">
+    <span class="callout-icon">⚡</span>
+    <div class="callout-body">
+      <div class="callout-title">Why the Bias Matters</div>
+      <div class="callout-text">Without bias (b=0), the decision boundary must pass through the origin. Bias shifts the threshold freely — just like the y-intercept in y = mx + b. It gives neurons the flexibility to activate at the right input magnitude, not just proportionally to inputs.</div>
+    </div>
+  </div>
+
+  <div class="card-grid cols2 reveal" style="margin-top:2rem;">
+    <div class="card">
+      <h3>Weights (W)</h3>
+      <p>Learned parameters. A high positive weight means the input strongly activates the neuron. A negative weight suppresses activation. Near-zero weight means that input is ignored. Weights are initialized randomly and learned during training.</p>
+    </div>
+    <div class="card">
+      <h3>Bias (b)</h3>
+      <p>Also a learned parameter. Think of it as how easy it is for this neuron to "fire." High bias = neuron fires easily. Low (negative) bias = neuron needs strong input to fire. Each neuron has its own bias.</p>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 3: ACTIVATIONS -->
+<!-- ══════════════════════════════════════════════════ -->
+<section id="activations">
+<div class="page">
+  <div class="section-label">Section 03</div>
+  <h2 class="section-title reveal">Activation Functions</h2>
+  <p class="section-intro reveal">Activation functions introduce non-linearity into the network. Without them, a deep network would collapse into a single linear transformation. Each function has different properties that make it suitable for different situations.</p>
+
+  <!-- Activation Plots SVG -->
+  <div class="diagram-wrap reveal">
+    <div class="diagram-title">Activation Function Curves — Visual Comparison</div>
+    <svg viewBox="0 0 760 230" width="100%" xmlns="http://www.w3.org/2000/svg">
+      <!-- Common axes styling -->
+      <!-- SIGMOID -->
+      <g transform="translate(10,10)">
+        <rect width="130" height="170" rx="8" fill="rgba(59,130,246,0.05)" stroke="rgba(59,130,246,0.2)" stroke-width="1"/>
+        <text x="65" y="18" fill="#60a5fa" font-size="10" text-anchor="middle" font-family="IBM Plex Mono" font-weight="500">Sigmoid</text>
+        <line x1="15" y1="120" x2="115" y2="120" stroke="#1e2d50" stroke-width="1"/>
+        <line x1="65" y1="30"  x2="65"  y2="155" stroke="#1e2d50" stroke-width="1"/>
+        <text x="15" y="118" fill="#4a6080" font-size="7" font-family="IBM Plex Mono">-3</text>
+        <text x="107" y="118" fill="#4a6080" font-size="7" font-family="IBM Plex Mono">3</text>
+        <text x="68" y="40" fill="#4a6080" font-size="7" font-family="IBM Plex Mono">1</text>
+        <text x="68" y="155" fill="#4a6080" font-size="7" font-family="IBM Plex Mono">0</text>
+        <!-- Sigmoid curve points: f(x) = 1/(1+e^-x), mapped x:-3..3 → px:15..115, y:0..1 → py:145..35 -->
+        <polyline points="15,142 25,140 35,136 45,128 55,115 65,85 75,55 85,42 95,38 105,36 115,35"
+          fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round"/>
+        <text x="65" y="168" fill="#4a6080" font-size="8" text-anchor="middle" font-family="IBM Plex Mono">Output: 0 → 1</text>
+      </g>
+
+      <!-- TANH -->
+      <g transform="translate(155,10)">
+        <rect width="130" height="170" rx="8" fill="rgba(34,211,238,0.05)" stroke="rgba(34,211,238,0.2)" stroke-width="1"/>
+        <text x="65" y="18" fill="#22d3ee" font-size="10" text-anchor="middle" font-family="IBM Plex Mono" font-weight="500">Tanh</text>
+        <line x1="15" y1="90" x2="115" y2="90" stroke="#1e2d50" stroke-width="1"/>
+        <line x1="65" y1="30" x2="65"  y2="155" stroke="#1e2d50" stroke-width="1"/>
+        <text x="68" y="40" fill="#4a6080" font-size="7" font-family="IBM Plex Mono">1</text>
+        <text x="68" y="150" fill="#4a6080" font-size="7" font-family="IBM Plex Mono">-1</text>
+        <polyline points="15,148 25,145 35,138 45,124 55,105 65,90 75,75 85,56 95,42 105,35 115,32"
+          fill="none" stroke="#22d3ee" stroke-width="2.5" stroke-linecap="round"/>
+        <text x="65" y="168" fill="#4a6080" font-size="8" text-anchor="middle" font-family="IBM Plex Mono">Output: −1 → 1</text>
+      </g>
+
+      <!-- ReLU -->
+      <g transform="translate(300,10)">
+        <rect width="130" height="170" rx="8" fill="rgba(52,211,153,0.05)" stroke="rgba(52,211,153,0.2)" stroke-width="1"/>
+        <text x="65" y="18" fill="#34d399" font-size="10" text-anchor="middle" font-family="IBM Plex Mono" font-weight="500">ReLU</text>
+        <line x1="15" y1="130" x2="115" y2="130" stroke="#1e2d50" stroke-width="1"/>
+        <line x1="55" y1="30"  x2="55"  y2="155" stroke="#1e2d50" stroke-width="1"/>
+        <polyline points="15,130 55,130 115,40"
+          fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="55" cy="130" r="3" fill="#34d399"/>
+        <text x="65" y="168" fill="#4a6080" font-size="8" text-anchor="middle" font-family="IBM Plex Mono">Output: max(0, z)</text>
+      </g>
+
+      <!-- Leaky ReLU -->
+      <g transform="translate(445,10)">
+        <rect width="130" height="170" rx="8" fill="rgba(251,191,36,0.05)" stroke="rgba(251,191,36,0.2)" stroke-width="1"/>
+        <text x="65" y="18" fill="#fbbf24" font-size="10" text-anchor="middle" font-family="IBM Plex Mono" font-weight="500">Leaky ReLU</text>
+        <line x1="15" y1="130" x2="115" y2="130" stroke="#1e2d50" stroke-width="1"/>
+        <line x1="55" y1="30"  x2="55"  y2="155" stroke="#1e2d50" stroke-width="1"/>
+        <polyline points="15,138 55,130 115,40"
+          fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="55" cy="130" r="3" fill="#fbbf24"/>
+        <text x="65" y="168" fill="#4a6080" font-size="8" text-anchor="middle" font-family="IBM Plex Mono">slope 0.01 left</text>
+      </g>
+
+      <!-- Softmax (bar representation) -->
+      <g transform="translate(590,10)">
+        <rect width="160" height="170" rx="8" fill="rgba(167,139,250,0.05)" stroke="rgba(167,139,250,0.2)" stroke-width="1"/>
+        <text x="80" y="18" fill="#a78bfa" font-size="10" text-anchor="middle" font-family="IBM Plex Mono" font-weight="500">Softmax</text>
+        <rect x="20" y="100" width="24" height="45" rx="3" fill="rgba(167,139,250,0.5)"/>
+        <rect x="52" y="70"  width="24" height="75" rx="3" fill="rgba(167,139,250,0.7)"/>
+        <rect x="84" y="110" width="24" height="35" rx="3" fill="rgba(167,139,250,0.4)"/>
+        <rect x="116" y="90" width="24" height="55" rx="3" fill="rgba(167,139,250,0.6)"/>
+        <text x="32" y="158" fill="#4a6080" font-size="7" text-anchor="middle" font-family="IBM Plex Mono">0.21</text>
+        <text x="64" y="158" fill="#4a6080" font-size="7" text-anchor="middle" font-family="IBM Plex Mono">0.38</text>
+        <text x="96" y="158" fill="#4a6080" font-size="7" text-anchor="middle" font-family="IBM Plex Mono">0.15</text>
+        <text x="128" y="158" fill="#4a6080" font-size="7" text-anchor="middle" font-family="IBM Plex Mono">0.26</text>
+        <text x="80" y="172" fill="#4a6080" font-size="8" text-anchor="middle" font-family="IBM Plex Mono">sums to 1.0</text>
+      </g>
+    </svg>
+  </div>
+
+  <div class="activation-grid reveal">
+    <div class="act-card">
+      <div class="act-name" style="color:var(--blue2)">Sigmoid</div>
+      <div class="act-formula">σ(z) = 1 / (1 + e⁻ᶻ)</div>
+      <svg viewBox="0 0 100 60" width="100%" style="margin:0.5rem 0;">
+        <polyline points="5,55 20,52 35,44 50,30 65,16 80,8 95,5" fill="none" stroke="#3b82f6" stroke-width="2"/>
+        <line x1="5" y1="30" x2="95" y2="30" stroke="#1e2d50" stroke-width="0.5"/>
+        <line x1="50" y1="5" x2="50" y2="58" stroke="#1e2d50" stroke-width="0.5"/>
+      </svg>
+      <div class="act-use">Binary output, probabilities. Problem: vanishing gradients in deep networks.</div>
+    </div>
+    <div class="act-card">
+      <div class="act-name" style="color:var(--cyan)">Tanh</div>
+      <div class="act-formula">tanh(z) = (eᶻ−e⁻ᶻ)/(eᶻ+e⁻ᶻ)</div>
+      <svg viewBox="0 0 100 60" width="100%" style="margin:0.5rem 0;">
+        <polyline points="5,56 20,52 35,42 50,30 65,18 80,8 95,4" fill="none" stroke="#22d3ee" stroke-width="2"/>
+        <line x1="5" y1="30" x2="95" y2="30" stroke="#1e2d50" stroke-width="0.5"/>
+        <line x1="50" y1="5" x2="50" y2="58" stroke="#1e2d50" stroke-width="0.5"/>
+      </svg>
+      <div class="act-use">Zero-centered (better than sigmoid). Range −1 to 1. Still has vanishing gradient.</div>
+    </div>
+    <div class="act-card">
+      <div class="act-name" style="color:var(--green)">ReLU</div>
+      <div class="act-formula">f(z) = max(0, z)</div>
+      <svg viewBox="0 0 100 60" width="100%" style="margin:0.5rem 0;">
+        <polyline points="5,50 50,50 95,5" fill="none" stroke="#34d399" stroke-width="2"/>
+        <line x1="5" y1="50" x2="95" y2="50" stroke="#1e2d50" stroke-width="0.5"/>
+        <line x1="50" y1="5" x2="50" y2="58" stroke="#1e2d50" stroke-width="0.5"/>
+      </svg>
+      <div class="act-use">Default for hidden layers. Fast, sparse, no vanishing gradient. Risk: dying ReLU.</div>
+    </div>
+    <div class="act-card">
+      <div class="act-name" style="color:var(--amber)">Leaky ReLU</div>
+      <div class="act-formula">f(z) = max(0.01z, z)</div>
+      <svg viewBox="0 0 100 60" width="100%" style="margin:0.5rem 0;">
+        <polyline points="5,54 50,50 95,5" fill="none" stroke="#fbbf24" stroke-width="2"/>
+        <line x1="5" y1="50" x2="95" y2="50" stroke="#1e2d50" stroke-width="0.5"/>
+        <line x1="50" y1="5" x2="50" y2="58" stroke="#1e2d50" stroke-width="0.5"/>
+      </svg>
+      <div class="act-use">Fixes dying ReLU. Small slope for negative inputs prevents dead neurons.</div>
+    </div>
+    <div class="act-card">
+      <div class="act-name" style="color:var(--violet)">Softmax</div>
+      <div class="act-formula">eᶻⁱ / Σeᶻʲ</div>
+      <svg viewBox="0 0 100 60" width="100%" style="margin:0.5rem 0;">
+        <rect x="10" y="35" width="16" height="22" rx="2" fill="rgba(167,139,250,0.5)"/>
+        <rect x="30" y="20" width="16" height="37" rx="2" fill="rgba(167,139,250,0.8)"/>
+        <rect x="50" y="40" width="16" height="17" rx="2" fill="rgba(167,139,250,0.4)"/>
+        <rect x="70" y="28" width="16" height="29" rx="2" fill="rgba(167,139,250,0.6)"/>
+      </svg>
+      <div class="act-use">Multi-class output only. Outputs probability distribution summing to 1.</div>
+    </div>
+    <div class="act-card">
+      <div class="act-name" style="color:var(--rose)">Linear</div>
+      <div class="act-formula">f(z) = z</div>
+      <svg viewBox="0 0 100 60" width="100%" style="margin:0.5rem 0;">
+        <polyline points="5,55 95,5" fill="none" stroke="#fb7185" stroke-width="2"/>
+        <line x1="5" y1="30" x2="95" y2="30" stroke="#1e2d50" stroke-width="0.5"/>
+        <line x1="50" y1="5" x2="50" y2="58" stroke="#1e2d50" stroke-width="0.5"/>
+      </svg>
+      <div class="act-use">Regression output layer. No squashing — output can be any real value.</div>
+    </div>
+  </div>
+
+  <div class="callout green reveal">
+    <span class="callout-icon">✅</span>
+    <div class="callout-body">
+      <div class="callout-title">Quick Selection Rule (Interview Answer)</div>
+      <div class="callout-text">Hidden layers → ReLU (or Leaky ReLU if dying neurons is a concern) · Binary classification output → Sigmoid · Multi-class output → Softmax · Regression output → Linear (no activation)</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 4: FEED FORWARD -->
+<!-- ══════════════════════════════════════════════════ -->
+<section id="forward">
+<div class="page">
+  <div class="section-label">Section 04</div>
+  <h2 class="section-title reveal">Feed Forward Process</h2>
+  <p class="section-intro reveal">Feed forward (forward propagation) is the process of computing a prediction. Data flows in one direction only — from input through hidden layers to output. No loops, no memory.</p>
+
+  <div class="pipeline reveal">
+    <div class="pipe-step"><div class="pipe-num">01</div><div class="pipe-label">Input</div><div class="pipe-sub">Normalize features</div></div>
+    <div class="pipe-step"><div class="pipe-num">02</div><div class="pipe-label">z = Wx+b</div><div class="pipe-sub">Weighted sum</div></div>
+    <div class="pipe-step"><div class="pipe-num">03</div><div class="pipe-label">a = f(z)</div><div class="pipe-sub">Activation</div></div>
+    <div class="pipe-step"><div class="pipe-num">04</div><div class="pipe-label">Repeat</div><div class="pipe-sub">Per layer</div></div>
+    <div class="pipe-step"><div class="pipe-num">05</div><div class="pipe-label">Output</div><div class="pipe-sub">Prediction ŷ</div></div>
+  </div>
+
+  <pre class="reveal"><span class="cm"># Forward pass in Python (manual 2-layer network)</span>
+<span class="kw">def</span> <span class="fn">forward</span>(<span class="var">X</span>, <span class="var">W1</span>, <span class="var">b1</span>, <span class="var">W2</span>, <span class="var">b2</span>):
+    <span class="cm"># Hidden layer</span>
+    <span class="var">Z1</span> <span class="op">=</span> <span class="var">np</span>.<span class="fn">dot</span>(<span class="var">W1</span>, <span class="var">X</span>) <span class="op">+</span> <span class="var">b1</span>    <span class="cm"># Linear step</span>
+    <span class="var">A1</span> <span class="op">=</span> <span class="var">np</span>.<span class="fn">maximum</span>(<span class="num">0</span>, <span class="var">Z1</span>)       <span class="cm"># ReLU activation</span>
+
+    <span class="cm"># Output layer</span>
+    <span class="var">Z2</span> <span class="op">=</span> <span class="var">np</span>.<span class="fn">dot</span>(<span class="var">W2</span>, <span class="var">A1</span>) <span class="op">+</span> <span class="var">b2</span>    <span class="cm"># Linear step</span>
+    <span class="var">A2</span> <span class="op">=</span> <span class="fn">sigmoid</span>(<span class="var">Z2</span>)              <span class="cm"># Sigmoid for binary output</span>
+    <span class="kw">return</span> <span class="var">A2</span>                      <span class="cm"># Prediction (0..1)</span></pre>
+
+  <div class="callout blue reveal">
+    <span class="callout-icon">📌</span>
+    <div class="callout-body">
+      <div class="callout-title">Forward Pass ≠ Training</div>
+      <div class="callout-text">The forward pass just computes a prediction. Training requires the forward pass PLUS computing the loss AND running backpropagation to update weights. At inference time (production), only the forward pass is used.</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 5: LOSS FUNCTIONS -->
+<!-- ══════════════════════════════════════════════════ -->
+<section id="loss">
+<div class="page">
+  <div class="section-label">Section 05</div>
+  <h2 class="section-title reveal">Loss Functions</h2>
+  <p class="section-intro reveal">The loss function measures how wrong the network's prediction is. Training = minimizing this number. Choosing the right loss function for your task is critical.</p>
+
+  <!-- Loss surface SVG -->
+  <div class="diagram-wrap reveal">
+    <div class="diagram-title">Loss Landscape — Goal is to Reach the Minimum</div>
+    <svg viewBox="0 0 700 200" width="100%" xmlns="http://www.w3.org/2000/svg">
+      <!-- Gradient curve representing loss surface -->
+      <path d="M 40,30 C 80,30 100,60 130,80 S 180,130 230,155 S 300,175 380,165 S 450,145 500,120 S 560,60 580,50 S 640,40 680,35"
+        fill="none" stroke="#3b82f6" stroke-width="2.5" opacity="0.4"/>
+      <!-- Loss bowl -->
+      <path d="M 100,50 C 150,50 200,100 280,155 S 360,175 440,155 S 520,100 570,50"
+        fill="rgba(59,130,246,0.04)" stroke="none"/>
+      <path d="M 100,50 C 150,50 200,100 280,155 S 360,175 440,155 S 520,100 570,50"
+        fill="none" stroke="#3b82f6" stroke-width="2.5"/>
+      <!-- Minimum point -->
+      <circle cx="335" cy="170" r="7" fill="#34d399"/>
+      <text x="335" y="192" fill="#34d399" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">global min</text>
+      <!-- Ball rolling down -->
+      <circle cx="180" cy="108" r="8" fill="#fbbf24" opacity="0.9"/>
+      <text x="175" y="95" fill="#fbbf24" font-size="9" font-family="IBM Plex Mono">current</text>
+      <text x="168" y="84" fill="#fbbf24" font-size="9" font-family="IBM Plex Mono">position</text>
+      <!-- Arrow showing direction -->
+      <path d="M 195,112 Q 250,135 310,158" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 Z" fill="#fbbf24"/>
+        </marker>
+      </defs>
+      <!-- Axes -->
+      <text x="350" y="20" fill="#4a6080" font-size="11" text-anchor="middle" font-family="IBM Plex Mono">Loss (J)</text>
+      <text x="650" y="165" fill="#4a6080" font-size="11" font-family="IBM Plex Mono">Weights (W)</text>
+      <line x1="30" y1="170" x2="690" y2="170" stroke="#1e2d50" stroke-width="1"/>
+      <line x1="40" y1="20"  x2="40"  y2="175" stroke="#1e2d50" stroke-width="1"/>
+      <!-- Label: gradient descent direction -->
+      <text x="240" y="140" fill="#60a5fa" font-size="9" font-family="IBM Plex Mono">gradient descent</text>
+      <text x="248" y="150" fill="#60a5fa" font-size="9" font-family="IBM Plex Mono">direction →</text>
+    </svg>
+  </div>
+
+  <div class="tbl-wrap reveal">
+    <table>
+      <thead><tr><th>Loss Function</th><th>Task</th><th>Formula</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong style="color:var(--text)">MSE</strong><br><span style="font-size:0.8rem;color:var(--text3)">Mean Squared Error</span></td>
+          <td><span class="badge badge-blue">Regression</span></td>
+          <td style="font-family:var(--mono);font-size:0.8rem;">L = (1/n)·Σ(y−ŷ)²</td>
+          <td>Penalizes large errors heavily due to squaring. Sensitive to outliers.</td>
+        </tr>
+        <tr>
+          <td><strong style="color:var(--text)">MAE</strong><br><span style="font-size:0.8rem;color:var(--text3)">Mean Absolute Error</span></td>
+          <td><span class="badge badge-blue">Regression</span></td>
+          <td style="font-family:var(--mono);font-size:0.8rem;">L = (1/n)·Σ|y−ŷ|</td>
+          <td>More robust to outliers. Gradient discontinuous at 0.</td>
+        </tr>
+        <tr>
+          <td><strong style="color:var(--text)">Binary Cross-Entropy</strong></td>
+          <td><span class="badge badge-green">Binary Classif.</span></td>
+          <td style="font-family:var(--mono);font-size:0.8rem;">−[y·log(ŷ)+(1−y)·log(1−ŷ)]</td>
+          <td>Use with Sigmoid output. Perfect for yes/no tasks.</td>
+        </tr>
+        <tr>
+          <td><strong style="color:var(--text)">Categorical Cross-Entropy</strong></td>
+          <td><span class="badge badge-violet">Multi-class</span></td>
+          <td style="font-family:var(--mono);font-size:0.8rem;">−Σ y·log(ŷ)</td>
+          <td>Use with Softmax output. Standard for image classification, NLP.</td>
+        </tr>
+        <tr>
+          <td><strong style="color:var(--text)">Huber Loss</strong></td>
+          <td><span class="badge badge-amber">Regression</span></td>
+          <td style="font-family:var(--mono);font-size:0.8rem;">MSE if |y−ŷ|≤δ, else MAE</td>
+          <td>Best of MSE and MAE. Robust to outliers, smooth gradient everywhere.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="formula reveal">
+    Binary Cross-Entropy Example: y=1, ŷ=0.9 → L = −[1·log(0.9) + 0·log(0.1)] = 0.105  ✓ low
+    <span class="comment">y=1, ŷ=0.1 → L = −log(0.1) = 2.30  ✗ very high — network is confidently wrong</span>
+  </div>
+</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 6: BACKPROP -->
+<!-- ══════════════════════════════════════════════════ -->
+<section id="backprop">
+<div class="page">
+  <div class="section-label">Section 06</div>
+  <h2 class="section-title reveal">Backpropagation</h2>
+  <p class="section-intro reveal">Backpropagation is the algorithm that computes how much each weight contributed to the error, then updates all weights to reduce that error. It uses the chain rule of calculus to propagate gradients backward through every layer.</p>
+
+  <div class="diagram-wrap reveal">
+    <div class="diagram-title">Full Training Loop — Forward & Backward Pass</div>
+    <svg viewBox="0 0 760 200" width="100%" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrf" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#3b82f6"/></marker>
+        <marker id="arrb" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto rotate(180)"><path d="M0,0 L8,3 L0,6 Z" fill="#fb7185"/></marker>
+      </defs>
+
+      <!-- Boxes -->
+      <rect x="10"  y="60" width="110" height="80" rx="10" fill="rgba(59,130,246,0.1)"  stroke="#3b82f6" stroke-width="1.5"/>
+      <rect x="170" y="60" width="110" height="80" rx="10" fill="rgba(34,211,238,0.1)"  stroke="#22d3ee" stroke-width="1.5"/>
+      <rect x="330" y="60" width="110" height="80" rx="10" fill="rgba(167,139,250,0.1)" stroke="#a78bfa" stroke-width="1.5"/>
+      <rect x="490" y="60" width="110" height="80" rx="10" fill="rgba(52,211,153,0.1)"  stroke="#34d399" stroke-width="1.5"/>
+      <rect x="640" y="60" width="110" height="80" rx="10" fill="rgba(251,113,133,0.1)" stroke="#fb7185" stroke-width="1.5"/>
+
+      <text x="65"  y="95" fill="#60a5fa" font-size="11" text-anchor="middle" font-family="IBM Plex Mono" font-weight="500">INPUT</text>
+      <text x="65"  y="112" fill="#4a6080" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">features x</text>
+      <text x="225" y="95"  fill="#22d3ee" font-size="11" text-anchor="middle" font-family="IBM Plex Mono" font-weight="500">HIDDEN</text>
+      <text x="225" y="112" fill="#4a6080" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">z=Wx+b, a=f(z)</text>
+      <text x="385" y="95"  fill="#a78bfa" font-size="11" text-anchor="middle" font-family="IBM Plex Mono" font-weight="500">OUTPUT</text>
+      <text x="385" y="112" fill="#4a6080" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">prediction ŷ</text>
+      <text x="545" y="95"  fill="#34d399" font-size="11" text-anchor="middle" font-family="IBM Plex Mono" font-weight="500">LOSS</text>
+      <text x="545" y="112" fill="#4a6080" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">J(y, ŷ)</text>
+      <text x="695" y="95"  fill="#fb7185" font-size="11" text-anchor="middle" font-family="IBM Plex Mono" font-weight="500">UPDATE</text>
+      <text x="695" y="112" fill="#4a6080" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">W=W−lr·∂J/∂W</text>
+
+      <!-- Forward arrows (top) -->
+      <g stroke="#3b82f6" stroke-width="2" marker-end="url(#arrf)">
+        <line x1="120" y1="85" x2="165" y2="85"/>
+        <line x1="280" y1="85" x2="325" y2="85"/>
+        <line x1="440" y1="85" x2="485" y2="85"/>
+        <line x1="600" y1="85" x2="635" y2="85"/>
+      </g>
+      <text x="310" y="55" fill="#3b82f6" font-size="10" text-anchor="middle" font-family="IBM Plex Mono">⟶ Forward Pass (prediction)</text>
+
+      <!-- Backward arrows (bottom) -->
+      <g stroke="#fb7185" stroke-width="2">
+        <line x1="635" y1="120" x2="605" y2="120" marker-end="url(#arrb)"/>
+        <line x1="485" y1="120" x2="445" y2="120" marker-end="url(#arrb)"/>
+        <line x1="325" y1="120" x2="285" y2="120" marker-end="url(#arrb)"/>
+        <line x1="165" y1="120" x2="125" y2="120" marker-end="url(#arrb)"/>
+      </g>
+      <text x="310" y="165" fill="#fb7185" font-size="10" text-anchor="middle" font-family="IBM Plex Mono">⟵ Backward Pass (gradients via chain rule)</text>
+
+      <!-- Gradient labels -->
+      <text x="552" y="145" fill="#fb7185" font-size="8" text-anchor="middle" font-family="IBM Plex Mono">∂J/∂ŷ</text>
+      <text x="390" y="145" fill="#fb7185" font-size="8" text-anchor="middle" font-family="IBM Plex Mono">∂J/∂W₂</text>
+      <text x="230" y="145" fill="#fb7185" font-size="8" text-anchor="middle" font-family="IBM Plex Mono">∂J/∂W₁</text>
+    </svg>
+  </div>
+
+  <h3 style="font-family:var(--display);font-size:1.25rem;margin:2rem 0 1rem;">The Chain Rule</h3>
+  <p style="color:var(--text2);margin-bottom:1rem;">Backprop works by applying the chain rule recursively. To find how the loss changes with an early weight, we multiply all the local gradients along the path:</p>
+  <div class="formula reveal">
+    ∂J/∂W₁ = (∂J/∂A₂) · (∂A₂/∂Z₂) · (∂Z₂/∂A₁) · (∂A₁/∂Z₁) · (∂Z₁/∂W₁)
+    <span class="comment">Each term is a local gradient. Chain rule links them from output all the way back to W₁</span>
+  </div>
+
+  <pre class="reveal"><span class="cm"># Backprop weight update</span>
+<span class="var">dW</span> <span class="op">=</span> <span class="num">1</span><span class="op">/</span><span class="var">m</span> <span class="op">*</span> <span class="var">np</span>.<span class="fn">dot</span>(<span class="var">dZ</span>, <span class="var">A_prev</span>.<span class="var">T</span>)   <span class="cm"># gradient of loss w.r.t. weights</span>
+<span class="var">db</span> <span class="op">=</span> <span class="num">1</span><span class="op">/</span><span class="var">m</span> <span class="op">*</span> <span class="var">np</span>.<span class="fn">sum</span>(<span class="var">dZ</span>, axis<span class="op">=</span><span class="num">1</span>, keepdims<span class="op">=</span><span class="kw">True</span>)
+
+<span class="cm"># Gradient descent update</span>
+<span class="var">W</span> <span class="op">=</span> <span class="var">W</span> <span class="op">-</span> <span class="var">learning_rate</span> <span class="op">*</span> <span class="var">dW</span>
+<span class="var">b</span> <span class="op">=</span> <span class="var">b</span> <span class="op">-</span> <span class="var">learning_rate</span> <span class="op">*</span> <span class="var">db</span></pre>
+
+  <h3 style="font-family:var(--display);font-size:1.25rem;margin:2rem 0 1rem;">Optimizers Compared</h3>
+  <div class="tbl-wrap reveal">
+    <table>
+      <thead><tr><th>Optimizer</th><th>How It Works</th><th>Pros</th><th>Cons</th></tr></thead>
+      <tbody>
+        <tr><td><strong style="color:var(--text)">SGD</strong></td><td>Single-sample gradient updates</td><td>Simple, low memory</td><td>Noisy, slow convergence</td></tr>
+        <tr><td><strong style="color:var(--text)">Mini-Batch SGD</strong></td><td>Batch of samples per update</td><td>Best balance</td><td>Requires tuning batch size</td></tr>
+        <tr><td><strong style="color:var(--text)">Momentum</strong></td><td>Accumulates gradient direction</td><td>Faster, smoother</td><td>One extra hyperparameter</td></tr>
+        <tr><td><strong style="color:var(--text)">RMSProp</strong></td><td>Adaptive per-parameter LR</td><td>Good for RNNs</td><td>Not invariant to scaling</td></tr>
+        <tr><td><strong style="color:var(--text)">Adam ⭐</strong></td><td>Momentum + RMSProp combined</td><td>Fast, robust default</td><td>Can overfit small datasets</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout rose reveal">
+    <span class="callout-icon">⚠️</span>
+    <div class="callout-body">
+      <div class="callout-title">Vanishing & Exploding Gradients</div>
+      <div class="callout-text"><strong>Vanishing:</strong> Gradients shrink to near zero through deep Sigmoid/Tanh layers — early layers stop learning. Fix: use ReLU, batch normalization, skip connections (ResNet). <strong>Exploding:</strong> Gradients grow exponentially — weights become NaN. Fix: gradient clipping, careful weight initialization.</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 7: TRAINING CONCEPTS -->
+<!-- ══════════════════════════════════════════════════ -->
+<section id="training">
+<div class="page">
+  <div class="section-label">Section 07</div>
+  <h2 class="section-title reveal">Training Concepts</h2>
+  <p class="section-intro reveal">Understanding how neural networks are trained — epochs, batches, learning rate schedules, and diagnosing training problems.</p>
+
+  <div class="card-grid cols3 reveal">
+    <div class="card">
+      <div class="card-icon" style="background:rgba(59,130,246,0.12);">🔁</div>
+      <h3>Epoch</h3>
+      <p>One complete pass through the entire training dataset. Networks typically train for 10–1000 epochs. Too few = underfitting. Too many = overfitting (use early stopping).</p>
+    </div>
+    <div class="card">
+      <div class="card-icon" style="background:rgba(34,211,238,0.12);">📦</div>
+      <h3>Batch Size</h3>
+      <p>Samples processed before a weight update. Common values: 16, 32, 64. Small batches = noisy gradients but fast updates. Large batches = stable but memory-intensive.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon" style="background:rgba(52,211,153,0.12);">🎯</div>
+      <h3>Iteration</h3>
+      <p>One weight update step. Iterations per epoch = total_samples / batch_size. 1000 samples with batch 32 = ~31 iterations per epoch.</p>
+    </div>
+  </div>
+
+  <!-- Overfitting / Underfitting diagram -->
+  <div class="diagram-wrap reveal" style="margin-top:2rem;">
+    <div class="diagram-title">Overfitting vs Underfitting — Training vs Validation Loss Curves</div>
+    <svg viewBox="0 0 720 200" width="100%" xmlns="http://www.w3.org/2000/svg">
+      <!-- Underfitting -->
+      <rect x="10" y="10" width="210" height="170" rx="8" fill="rgba(251,113,133,0.04)" stroke="rgba(251,113,133,0.2)" stroke-width="1"/>
+      <text x="115" y="28" fill="#fb7185" font-size="10" text-anchor="middle" font-family="IBM Plex Mono">UNDERFITTING (High Bias)</text>
+      <line x1="25" y1="155" x2="205" y2="155" stroke="#1e2d50" stroke-width="1"/>
+      <line x1="25" y1="40" x2="25" y2="160" stroke="#1e2d50" stroke-width="1"/>
+      <text x="20" y="38" fill="#4a6080" font-size="8" font-family="IBM Plex Mono">Loss</text>
+      <text x="200" y="167" fill="#4a6080" font-size="8" font-family="IBM Plex Mono">Epochs</text>
+      <!-- Both train+val high and barely decreasing -->
+      <polyline points="30,120 60,110 90,105 120,102 150,100 180,99 205,98" fill="none" stroke="#3b82f6" stroke-width="2"/>
+      <polyline points="30,125 60,115 90,110 120,108 150,107 180,107 205,107" fill="none" stroke="#34d399" stroke-width="2" stroke-dasharray="5 3"/>
+      <text x="115" y="175" fill="#4a6080" font-size="8" text-anchor="middle" font-family="IBM Plex Mono">Both losses remain high</text>
+
+      <!-- Good fit -->
+      <rect x="255" y="10" width="210" height="170" rx="8" fill="rgba(52,211,153,0.04)" stroke="rgba(52,211,153,0.2)" stroke-width="1"/>
+      <text x="360" y="28" fill="#34d399" font-size="10" text-anchor="middle" font-family="IBM Plex Mono">GOOD FIT (Balanced)</text>
+      <line x1="270" y1="155" x2="450" y2="155" stroke="#1e2d50" stroke-width="1"/>
+      <line x1="270" y1="40"  x2="270" y2="160" stroke="#1e2d50" stroke-width="1"/>
+      <polyline points="275,130 300,110 330,85 360,65 390,52 420,45 445,42" fill="none" stroke="#3b82f6" stroke-width="2"/>
+      <polyline points="275,135 300,115 330,92 360,72 390,60 420,55 445,54" fill="none" stroke="#34d399" stroke-width="2" stroke-dasharray="5 3"/>
+      <text x="360" y="175" fill="#4a6080" font-size="8" text-anchor="middle" font-family="IBM Plex Mono">Both losses converge low</text>
+
+      <!-- Overfitting -->
+      <rect x="500" y="10" width="210" height="170" rx="8" fill="rgba(251,191,36,0.04)" stroke="rgba(251,191,36,0.2)" stroke-width="1"/>
+      <text x="605" y="28" fill="#fbbf24" font-size="10" text-anchor="middle" font-family="IBM Plex Mono">OVERFITTING (High Variance)</text>
+      <line x1="515" y1="155" x2="695" y2="155" stroke="#1e2d50" stroke-width="1"/>
+      <line x1="515" y1="40"  x2="515" y2="160" stroke="#1e2d50" stroke-width="1"/>
+      <polyline points="520,130 545,105 570,80 595,58 620,42 645,33 685,28" fill="none" stroke="#3b82f6" stroke-width="2"/>
+      <polyline points="520,132 545,108 570,87 595,78 620,82 645,90 685,105" fill="none" stroke="#fb7185" stroke-width="2" stroke-dasharray="5 3"/>
+      <text x="605" y="175" fill="#4a6080" font-size="8" text-anchor="middle" font-family="IBM Plex Mono">Val loss rises while train falls</text>
+
+      <!-- Legend -->
+      <line x1="30" y1="188" x2="50" y2="188" stroke="#3b82f6" stroke-width="2"/>
+      <text x="55" y="192" fill="#3b82f6" font-size="8" font-family="IBM Plex Mono">train loss</text>
+      <line x1="120" y1="188" x2="140" y2="188" stroke="#34d399" stroke-width="2" stroke-dasharray="5 3"/>
+      <text x="145" y="192" fill="#34d399" font-size="8" font-family="IBM Plex Mono">val loss (good)</text>
+      <line x1="250" y1="188" x2="270" y2="188" stroke="#fb7185" stroke-width="2" stroke-dasharray="5 3"/>
+      <text x="275" y="192" fill="#fb7185" font-size="8" font-family="IBM Plex Mono">val loss (overfit)</text>
+    </svg>
+  </div>
+
+  <div class="callout amber reveal">
+    <span class="callout-icon">💡</span>
+    <div class="callout-body">
+      <div class="callout-title">Learning Rate Schedule</div>
+      <div class="callout-text">Starting with a higher learning rate and gradually reducing it (learning rate decay) often improves convergence. Popular schedules: Step Decay (halve every N epochs), Cosine Annealing, OneCycle Policy. Most deep learning frameworks support these out of the box.</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 8: REGULARIZATION -->
+<!-- ══════════════════════════════════════════════════ -->
+<section id="regularization">
+<div class="page">
+  <div class="section-label">Section 08</div>
+  <h2 class="section-title reveal">Regularization Techniques</h2>
+  <p class="section-intro reveal">Regularization prevents overfitting — when a model memorizes training data but fails on new examples. These techniques add constraints or noise to force the network to generalize better.</p>
+
+  <div class="card-grid cols2 reveal">
+    <div class="card">
+      <h3>L2 Regularization (Ridge)</h3>
+      <p>Adds the sum of squared weights to the loss. Penalizes large weights, forcing the model to distribute importance across many features rather than relying heavily on a few.</p>
+      <div class="formula" style="margin-top:1rem;font-size:0.8rem;">J_total = J_original + λ · Σ(W²)</div>
+    </div>
+    <div class="card">
+      <h3>L1 Regularization (Lasso)</h3>
+      <p>Adds sum of absolute weights to loss. Encourages sparse weights — many weights go exactly to zero. Acts as automatic feature selection by eliminating unimportant inputs.</p>
+      <div class="formula" style="margin-top:1rem;font-size:0.8rem;">J_total = J_original + λ · Σ|W|</div>
+    </div>
+  </div>
+
+  <!-- Dropout SVG diagram -->
+  <div class="diagram-wrap reveal" style="margin-top:1.5rem;">
+    <div class="diagram-title">Dropout — Randomly Deactivating Neurons During Training</div>
+    <svg viewBox="0 0 700 160" width="100%" xmlns="http://www.w3.org/2000/svg">
+      <!-- Without dropout -->
+      <text x="175" y="18" fill="#4a6080" font-size="10" text-anchor="middle" font-family="IBM Plex Mono">Without Dropout (training)</text>
+      <circle cx="80"  cy="60"  r="16" fill="#0d1a35" stroke="#22d3ee" stroke-width="1.5"/>
+      <circle cx="80"  cy="100" r="16" fill="#0d1a35" stroke="#22d3ee" stroke-width="1.5"/>
+      <circle cx="80"  cy="140" r="16" fill="#0d1a35" stroke="#22d3ee" stroke-width="1.5"/>
+      <circle cx="200" cy="50"  r="16" fill="#0d1a35" stroke="#22d3ee" stroke-width="1.5"/>
+      <circle cx="200" cy="90"  r="16" fill="#0d1a35" stroke="#22d3ee" stroke-width="1.5"/>
+      <circle cx="200" cy="130" r="16" fill="#0d1a35" stroke="#22d3ee" stroke-width="1.5"/>
+      <circle cx="270" cy="80"  r="16" fill="#0d1a35" stroke="#34d399" stroke-width="1.5"/>
+      <circle cx="270" cy="120" r="16" fill="#0d1a35" stroke="#34d399" stroke-width="1.5"/>
+      <g stroke="#1e2d50" stroke-width="0.8">
+        <line x1="96"  y1="60"  x2="184" y2="50"/>  <line x1="96"  y1="60"  x2="184" y2="90"/>  <line x1="96"  y1="60"  x2="184" y2="130"/>
+        <line x1="96"  y1="100" x2="184" y2="50"/>  <line x1="96"  y1="100" x2="184" y2="90"/>  <line x1="96"  y1="100" x2="184" y2="130"/>
+        <line x1="96"  y1="140" x2="184" y2="50"/>  <line x1="96"  y1="140" x2="184" y2="90"/>  <line x1="96"  y1="140" x2="184" y2="130"/>
+        <line x1="216" y1="50"  x2="254" y2="80"/>  <line x1="216" y1="50"  x2="254" y2="120"/>
+        <line x1="216" y1="90"  x2="254" y2="80"/>  <line x1="216" y1="90"  x2="254" y2="120"/>
+        <line x1="216" y1="130" x2="254" y2="80"/>  <line x1="216" y1="130" x2="254" y2="120"/>
+      </g>
+
+      <!-- Separator -->
+      <line x1="355" y1="20" x2="355" y2="155" stroke="#1e2d50" stroke-width="1" stroke-dasharray="4 3"/>
+
+      <!-- With dropout -->
+      <text x="535" y="18" fill="#4a6080" font-size="10" text-anchor="middle" font-family="IBM Plex Mono">With Dropout (training, p=0.5)</text>
+      <circle cx="390" cy="60"  r="16" fill="#0d1a35" stroke="#22d3ee" stroke-width="1.5"/>
+      <!-- Dropped out neuron -->
+      <circle cx="390" cy="100" r="16" fill="#1e2d50" stroke="#1e2d50" stroke-width="1" opacity="0.3"/>
+      <line x1="378" y1="88" x2="402" y2="112" stroke="#fb7185" stroke-width="2"/>
+      <line x1="402" y1="88" x2="378" y2="112" stroke="#fb7185" stroke-width="2"/>
+      <circle cx="390" cy="140" r="16" fill="#0d1a35" stroke="#22d3ee" stroke-width="1.5"/>
+      <circle cx="510" cy="50"  r="16" fill="#0d1a35" stroke="#22d3ee" stroke-width="1.5"/>
+      <!-- Dropped out -->
+      <circle cx="510" cy="90"  r="16" fill="#1e2d50" stroke="#1e2d50" stroke-width="1" opacity="0.3"/>
+      <line x1="498" y1="78" x2="522" y2="102" stroke="#fb7185" stroke-width="2"/>
+      <line x1="522" y1="78" x2="498" y2="102" stroke="#fb7185" stroke-width="2"/>
+      <circle cx="510" cy="130" r="16" fill="#0d1a35" stroke="#22d3ee" stroke-width="1.5"/>
+      <circle cx="585" cy="80"  r="16" fill="#0d1a35" stroke="#34d399" stroke-width="1.5"/>
+      <circle cx="585" cy="120" r="16" fill="#0d1a35" stroke="#34d399" stroke-width="1.5"/>
+      <g stroke="#1e2d50" stroke-width="0.8">
+        <line x1="406" y1="60" x2="494" y2="50"/> <line x1="406" y1="60" x2="494" y2="130"/>
+        <line x1="406" y1="140" x2="494" y2="50"/> <line x1="406" y1="140" x2="494" y2="130"/>
+        <line x1="526" y1="50" x2="569" y2="80"/> <line x1="526" y1="50" x2="569" y2="120"/>
+        <line x1="526" y1="130" x2="569" y2="80"/> <line x1="526" y1="130" x2="569" y2="120"/>
+      </g>
+      <text x="430" y="152" fill="#fb7185" font-size="9" font-family="IBM Plex Mono">✕ = dropped</text>
+    </svg>
+  </div>
+
+  <div class="tbl-wrap reveal">
+    <table>
+      <thead><tr><th>Technique</th><th>How It Works</th><th>When to Use</th></tr></thead>
+      <tbody>
+        <tr><td><strong style="color:var(--text)">L2 (Weight Decay)</strong></td><td>Penalizes large weights in the loss function</td><td>Almost always — good default</td></tr>
+        <tr><td><strong style="color:var(--text)">L1 (Lasso)</strong></td><td>Promotes weight sparsity (many zeros)</td><td>When feature selection matters</td></tr>
+        <tr><td><strong style="color:var(--text)">Dropout</strong></td><td>Randomly zeroes neurons during training (rate 0.2–0.5)</td><td>Large fully-connected networks</td></tr>
+        <tr><td><strong style="color:var(--text)">Early Stopping</strong></td><td>Stop training when validation loss starts rising</td><td>Always — simplest technique</td></tr>
+        <tr><td><strong style="color:var(--text)">Batch Normalization</strong></td><td>Normalizes layer inputs during training</td><td>Deep networks — also speeds training</td></tr>
+        <tr><td><strong style="color:var(--text)">Data Augmentation</strong></td><td>Artificially expand training data (flips, crops, noise)</td><td>Image, audio, text tasks</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 9: ARCHITECTURES -->
+<!-- ══════════════════════════════════════════════════ -->
+<section id="architectures">
+<div class="page">
+  <div class="section-label">Section 09</div>
+  <h2 class="section-title reveal">Neural Network Architectures</h2>
+  <p class="section-intro reveal">Different problem types call for different architectures. Each has been designed to exploit the structure of its data — spatial, sequential, or relational.</p>
+
+  <!-- CNN diagram -->
+  <div class="diagram-wrap reveal">
+    <div class="diagram-title">CNN — Convolutional Neural Network (Image Data)</div>
+    <svg viewBox="0 0 720 160" width="100%" xmlns="http://www.w3.org/2000/svg">
+      <!-- Input image -->
+      <rect x="10" y="30" width="80" height="100" rx="4" fill="rgba(59,130,246,0.1)" stroke="#3b82f6" stroke-width="1.5"/>
+      <text x="50" y="85" fill="#60a5fa" font-size="10" text-anchor="middle" font-family="IBM Plex Mono">Image</text>
+      <text x="50" y="98" fill="#4a6080" font-size="8" text-anchor="middle" font-family="IBM Plex Mono">28×28×3</text>
+      <!-- Arrow -->
+      <line x1="90" y1="80" x2="108" y2="80" stroke="#4a6080" stroke-width="1.5" marker-end="url(#arrf)"/>
+      <!-- Conv layer -->
+      <rect x="112" y="20" width="70" height="120" rx="4" fill="rgba(34,211,238,0.1)" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="147" y="78" fill="#22d3ee" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">Conv</text>
+      <text x="147" y="90" fill="#22d3ee" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">3×3</text>
+      <text x="147" y="102" fill="#4a6080" font-size="7" text-anchor="middle" font-family="IBM Plex Mono">filters</text>
+      <!-- Arrow -->
+      <line x1="182" y1="80" x2="198" y2="80" stroke="#4a6080" stroke-width="1.5" marker-end="url(#arrf)"/>
+      <!-- Pooling -->
+      <rect x="202" y="30" width="60" height="100" rx="4" fill="rgba(167,139,250,0.1)" stroke="#a78bfa" stroke-width="1.5"/>
+      <text x="232" y="78" fill="#a78bfa" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">Max</text>
+      <text x="232" y="90" fill="#a78bfa" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">Pool</text>
+      <text x="232" y="102" fill="#4a6080" font-size="7" text-anchor="middle" font-family="IBM Plex Mono">2×2</text>
+      <!-- Arrow -->
+      <line x1="262" y1="80" x2="278" y2="80" stroke="#4a6080" stroke-width="1.5" marker-end="url(#arrf)"/>
+      <!-- Conv layer 2 -->
+      <rect x="282" y="15" width="70" height="130" rx="4" fill="rgba(34,211,238,0.1)" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="317" y="78" fill="#22d3ee" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">Conv</text>
+      <text x="317" y="90" fill="#22d3ee" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">3×3</text>
+      <!-- Arrow -->
+      <line x1="352" y1="80" x2="368" y2="80" stroke="#4a6080" stroke-width="1.5" marker-end="url(#arrf)"/>
+      <!-- Pool 2 -->
+      <rect x="372" y="25" width="55" height="110" rx="4" fill="rgba(167,139,250,0.1)" stroke="#a78bfa" stroke-width="1.5"/>
+      <text x="399" y="83" fill="#a78bfa" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">Pool</text>
+      <!-- Flatten -->
+      <line x1="427" y1="80" x2="445" y2="80" stroke="#4a6080" stroke-width="1.5" marker-end="url(#arrf)"/>
+      <rect x="449" y="50" width="60" height="60" rx="4" fill="rgba(251,191,36,0.1)" stroke="#fbbf24" stroke-width="1.5"/>
+      <text x="479" y="83" fill="#fbbf24" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">Flatten</text>
+      <!-- FC -->
+      <line x1="509" y1="80" x2="527" y2="80" stroke="#4a6080" stroke-width="1.5" marker-end="url(#arrf)"/>
+      <rect x="531" y="45" width="60" height="70" rx="4" fill="rgba(52,211,153,0.1)" stroke="#34d399" stroke-width="1.5"/>
+      <text x="561" y="78" fill="#34d399" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">Dense</text>
+      <text x="561" y="90" fill="#34d399" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">Softmax</text>
+      <!-- Output -->
+      <line x1="591" y1="80" x2="607" y2="80" stroke="#4a6080" stroke-width="1.5" marker-end="url(#arrf)"/>
+      <rect x="611" y="60" width="100" height="40" rx="6" fill="rgba(52,211,153,0.12)" stroke="#34d399" stroke-width="1.5"/>
+      <text x="661" y="84" fill="#34d399" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">class probs</text>
+
+      <!-- Labels below -->
+      <text x="147" y="152" fill="#4a6080" font-size="7.5" text-anchor="middle" font-family="IBM Plex Mono">Detect edges</text>
+      <text x="317" y="152" fill="#4a6080" font-size="7.5" text-anchor="middle" font-family="IBM Plex Mono">Detect shapes</text>
+      <text x="479" y="152" fill="#4a6080" font-size="7.5" text-anchor="middle" font-family="IBM Plex Mono">Vectorize</text>
+      <text x="561" y="152" fill="#4a6080" font-size="7.5" text-anchor="middle" font-family="IBM Plex Mono">Classify</text>
+    </svg>
+  </div>
+
+  <!-- Transformer diagram -->
+  <div class="diagram-wrap reveal">
+    <div class="diagram-title">Transformer Architecture — Self-Attention (NLP, GPT, BERT)</div>
+    <svg viewBox="0 0 700 180" width="100%" xmlns="http://www.w3.org/2000/svg">
+      <!-- Tokens -->
+      <rect x="10"  y="70" width="70" height="30" rx="5" fill="rgba(59,130,246,0.12)" stroke="#3b82f6" stroke-width="1"/>
+      <rect x="90"  y="70" width="70" height="30" rx="5" fill="rgba(59,130,246,0.12)" stroke="#3b82f6" stroke-width="1"/>
+      <rect x="170" y="70" width="70" height="30" rx="5" fill="rgba(59,130,246,0.12)" stroke="#3b82f6" stroke-width="1"/>
+      <text x="45"  y="89" fill="#60a5fa" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">"The"</text>
+      <text x="125" y="89" fill="#60a5fa" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">"cat"</text>
+      <text x="205" y="89" fill="#60a5fa" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">"sat"</text>
+      <text x="115" y="30" fill="#4a6080" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">Input tokens (with positional encoding)</text>
+
+      <!-- Self-Attention attention lines (each token attends to all others) -->
+      <g stroke="rgba(34,211,238,0.25)" stroke-width="1">
+        <line x1="45"  y1="70" x2="125" y2="70"/>
+        <line x1="45"  y1="70" x2="205" y2="70"/>
+        <line x1="125" y1="70" x2="45"  y2="70"/>
+        <line x1="125" y1="70" x2="205" y2="70"/>
+        <line x1="205" y1="70" x2="45"  y2="70"/>
+        <line x1="205" y1="70" x2="125" y2="70"/>
+      </g>
+      <text x="115" y="58" fill="#22d3ee" font-size="8" text-anchor="middle" font-family="IBM Plex Mono">↔ self-attention: each token sees all others ↔</text>
+
+      <!-- Arrow to multi-head attention -->
+      <path d="M 245,85 L 280,85" stroke="#4a6080" stroke-width="1.5" marker-end="url(#arrf)"/>
+
+      <!-- Multi-head attn box -->
+      <rect x="284" y="50" width="130" height="70" rx="8" fill="rgba(34,211,238,0.08)" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="349" y="82" fill="#22d3ee" font-size="10" text-anchor="middle" font-family="IBM Plex Mono">Multi-Head</text>
+      <text x="349" y="96" fill="#22d3ee" font-size="10" text-anchor="middle" font-family="IBM Plex Mono">Attention</text>
+      <text x="349" y="110" fill="#4a6080" font-size="8" text-anchor="middle" font-family="IBM Plex Mono">Q · K · V matrices</text>
+
+      <!-- Arrow to FFN -->
+      <path d="M 414,85 L 450,85" stroke="#4a6080" stroke-width="1.5" marker-end="url(#arrf)"/>
+
+      <!-- FFN box -->
+      <rect x="454" y="55" width="110" height="60" rx="8" fill="rgba(167,139,250,0.08)" stroke="#a78bfa" stroke-width="1.5"/>
+      <text x="509" y="82" fill="#a78bfa" font-size="10" text-anchor="middle" font-family="IBM Plex Mono">Feed</text>
+      <text x="509" y="95" fill="#a78bfa" font-size="10" text-anchor="middle" font-family="IBM Plex Mono">Forward</text>
+
+      <!-- Arrow to output -->
+      <path d="M 564,85 L 600,85" stroke="#4a6080" stroke-width="1.5" marker-end="url(#arrf)"/>
+
+      <!-- Output -->
+      <rect x="604" y="62" width="90" height="46" rx="8" fill="rgba(52,211,153,0.08)" stroke="#34d399" stroke-width="1.5"/>
+      <text x="649" y="88" fill="#34d399" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">Output</text>
+      <text x="649" y="101" fill="#4a6080" font-size="7.5" text-anchor="middle" font-family="IBM Plex Mono">embeddings</text>
+
+      <!-- Add & Norm indicators -->
+      <text x="349" y="145" fill="#4a6080" font-size="8" text-anchor="middle" font-family="IBM Plex Mono">+ residual connection &amp; layer norm</text>
+      <text x="509" y="145" fill="#4a6080" font-size="8" text-anchor="middle" font-family="IBM Plex Mono">+ residual connection</text>
+    </svg>
+  </div>
+
+  <div class="tbl-wrap reveal">
+    <table>
+      <thead><tr><th>Architecture</th><th>Key Feature</th><th>Best For</th><th>Examples</th></tr></thead>
+      <tbody>
+        <tr><td><strong style="color:var(--text)">ANN / MLP</strong></td><td>Fully connected layers</td><td>Tabular data, classification, regression</td><td>Credit scoring, fraud detection</td></tr>
+        <tr><td><strong style="color:var(--text)">CNN</strong></td><td>Convolutional filters detect spatial patterns</td><td>Images, video, audio spectrograms</td><td>ResNet, VGG, YOLO</td></tr>
+        <tr><td><strong style="color:var(--text)">RNN</strong></td><td>Feedback loops — output feeds back as input</td><td>Sequences: text, time series, speech</td><td>Character-level LMs</td></tr>
+        <tr><td><strong style="color:var(--text)">LSTM / GRU</strong></td><td>Gates control what to remember/forget</td><td>Long sequences, translation, speech</td><td>Seq2seq models</td></tr>
+        <tr><td><strong style="color:var(--text)">Transformer</strong></td><td>Self-attention sees all positions at once</td><td>NLP, code, images (ViT)</td><td>BERT, GPT-4, T5</td></tr>
+        <tr><td><strong style="color:var(--text)">GAN</strong></td><td>Generator + Discriminator compete</td><td>Image/data generation</td><td>StyleGAN, DALL-E (earlier)</td></tr>
+        <tr><td><strong style="color:var(--text)">Autoencoder</strong></td><td>Encode to bottleneck, then decode</td><td>Anomaly detection, denoising, compression</td><td>VAE, Denoising AE</td></tr>
+        <tr><td><strong style="color:var(--text)">Diffusion Model</strong></td><td>Learn to reverse noise injection process</td><td>High-quality image/audio generation</td><td>Stable Diffusion, DALL-E 3</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 10: INTERVIEW Q&A -->
+<!-- ══════════════════════════════════════════════════ -->
+<section id="interview">
+<div class="page">
+  <div class="section-label">Section 10</div>
+  <h2 class="section-title reveal">Interview Questions &amp; Model Answers</h2>
+  <p class="section-intro reveal">Click each question to reveal a structured answer. These are commonly asked in ML engineer, data scientist, and AI researcher interviews.</p>
+
+  <div id="qa-container" class="reveal">
+
+    <div class="qa-block">
+      <div class="qa-q" onclick="toggleQA(this)">What is a neural network and how does it learn? <span class="tag">Fundamentals</span> <span class="qa-chevron">▾</span></div>
+      <div class="qa-a">A neural network is a parameterized function approximator composed of layers of interconnected neurons. Each neuron computes a weighted sum of its inputs plus a bias, then applies a non-linear activation function. Learning happens through: (1) Forward pass — compute a prediction, (2) Loss computation — measure prediction error, (3) Backpropagation — compute gradients of loss w.r.t. all weights using the chain rule, (4) Gradient descent — update weights to reduce the loss. This loop repeats for many mini-batches across many epochs until the loss converges.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q" onclick="toggleQA(this)">Why are activation functions necessary? <span class="tag">Fundamentals</span> <span class="qa-chevron">▾</span></div>
+      <div class="qa-a">Without activation functions, any stack of linear layers collapses to a single linear transformation: f(W₂(W₁x+b₁)+b₂) = (W₂W₁)x + c, which can only model linear relationships. Non-linear activations (ReLU, Sigmoid, Tanh) break this — they allow the network to learn complex, curved decision boundaries and hierarchical feature representations needed for tasks like image classification or NLP.
+        <ul>
+          <li><strong>ReLU</strong> — hidden layers (fast, no vanishing gradient)</li>
+          <li><strong>Sigmoid</strong> — binary classification output</li>
+          <li><strong>Softmax</strong> — multi-class output</li>
+          <li><strong>Linear</strong> — regression output</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q" onclick="toggleQA(this)">Explain backpropagation and the chain rule. <span class="tag">Core Algorithm</span> <span class="qa-chevron">▾</span></div>
+      <div class="qa-a">Backpropagation computes the gradient of the loss with respect to every weight in the network by applying the chain rule of calculus. Starting from the output, it computes how much the loss changes with a small change in the last layer's weights. Then it propagates this error signal backward, layer by layer, multiplying local gradients. For a weight W₁ in layer 1: ∂J/∂W₁ = (∂J/∂a₂)·(∂a₂/∂z₂)·(∂z₂/∂a₁)·(∂a₁/∂z₁)·(∂z₁/∂W₁). These gradients are then used by gradient descent to update: W₁ = W₁ − lr·∂J/∂W₁.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q" onclick="toggleQA(this)">What is the vanishing gradient problem and how do you fix it? <span class="tag">Common Problem</span> <span class="qa-chevron">▾</span></div>
+      <div class="qa-a">In deep networks using Sigmoid or Tanh, gradients passing through many layers get multiplied by values less than 1 repeatedly, shrinking exponentially toward zero. Early layers receive near-zero gradients and stop learning — the network can only train its last few layers effectively.
+        <ul>
+          <li><strong>Use ReLU</strong> — gradient is 1 for positive values, doesn't shrink</li>
+          <li><strong>Batch Normalization</strong> — keeps activations in healthy range</li>
+          <li><strong>Residual connections (ResNet)</strong> — skip connections allow gradients to flow directly</li>
+          <li><strong>Careful weight initialization</strong> — He init for ReLU, Xavier for Sigmoid/Tanh</li>
+          <li><strong>LSTM/GRU for RNNs</strong> — gated memory cells handle long sequences</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q" onclick="toggleQA(this)">What is overfitting? How do you detect and prevent it? <span class="tag">Regularization</span> <span class="qa-chevron">▾</span></div>
+      <div class="qa-a">Overfitting occurs when a model learns the training data too well — including its noise — and fails to generalize to new data. You detect it by monitoring: training accuracy keeps rising while validation accuracy plateaus or drops, or training loss falls while validation loss rises.
+        <ul>
+          <li><strong>Prevention:</strong> Dropout, L1/L2 regularization, early stopping</li>
+          <li><strong>More data:</strong> Collect real data or use data augmentation</li>
+          <li><strong>Simpler model:</strong> Reduce layers/neurons</li>
+          <li><strong>Batch normalization:</strong> Mild regularization effect</li>
+          <li><strong>Cross-validation:</strong> Ensure evaluation is on held-out data</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q" onclick="toggleQA(this)">What is the difference between batch, mini-batch, and stochastic gradient descent? <span class="tag">Optimization</span> <span class="qa-chevron">▾</span></div>
+      <div class="qa-a">All three are variants of gradient descent but differ in how many samples are used per weight update:
+        <ul>
+          <li><strong>Batch GD</strong> — uses all N training samples. Smooth, accurate gradient. Very slow for large datasets. Memory intensive.</li>
+          <li><strong>Stochastic GD (SGD)</strong> — uses 1 random sample. Very fast updates but very noisy. Can escape local minima.</li>
+          <li><strong>Mini-batch GD</strong> — uses a batch (32, 64, 128 samples). Best of both: reasonably accurate gradient, fast updates, efficient GPU parallelism. Standard choice in practice.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q" onclick="toggleQA(this)">What optimizer would you use and why? <span class="tag">Optimization</span> <span class="qa-chevron">▾</span></div>
+      <div class="qa-a"><strong>Adam</strong> is the default recommendation for most tasks. It combines Momentum (accelerates in the right direction) and RMSProp (adapts learning rate per parameter). It converges fast, handles sparse gradients well, and requires minimal tuning. Default lr=0.001 usually works. Exception: for computer vision tasks like ResNet training, <strong>SGD with Momentum</strong> (lr=0.1, momentum=0.9, weight decay=1e-4) can achieve slightly higher final accuracy, though it requires more careful tuning and learning rate scheduling.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q" onclick="toggleQA(this)">How does batch normalization work and why is it useful? <span class="tag">Training Techniques</span> <span class="qa-chevron">▾</span></div>
+      <div class="qa-a">Batch normalization normalizes the inputs to each layer so they have zero mean and unit variance across the mini-batch, then applies learnable scale (γ) and shift (β) parameters. Applied between the linear step and activation: z → BatchNorm(z) → f(z). Benefits:
+        <ul>
+          <li>Stabilizes training — reduces sensitivity to weight initialization</li>
+          <li>Allows higher learning rates — faster convergence</li>
+          <li>Mild regularization effect (reduces dropout need)</li>
+          <li>Reduces internal covariate shift — each layer sees well-conditioned inputs</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q" onclick="toggleQA(this)">What's the difference between CNN, RNN, and Transformer? <span class="tag">Architectures</span> <span class="qa-chevron">▾</span></div>
+      <div class="qa-a">
+        <ul>
+          <li><strong>CNN</strong> — uses small convolutional filters that slide over input, detecting local spatial patterns. Excellent for images because nearby pixels are correlated. Not naturally sequential.</li>
+          <li><strong>RNN</strong> — processes sequences step-by-step with a hidden state that carries information forward. Good for short sequences. Problem: vanishing gradients make it forget long-range context. LSTM/GRU add gating mechanisms to address this.</li>
+          <li><strong>Transformer</strong> — uses self-attention to compute relationships between all positions simultaneously. No sequential processing = highly parallelizable. Handles long-range dependencies naturally. Basis of all modern LLMs (GPT, BERT, T5). Requires more memory but scales far better than RNNs.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q" onclick="toggleQA(this)">A model has high training accuracy but low test accuracy. What do you do? <span class="tag">Practical</span> <span class="qa-chevron">▾</span></div>
+      <div class="qa-a">This is classic overfitting. Systematic approach:
+        <ul>
+          <li><strong>Add regularization:</strong> Try dropout (0.3–0.5 on FC layers), L2 weight decay (1e-4)</li>
+          <li><strong>Early stopping:</strong> Monitor val loss and stop when it increases</li>
+          <li><strong>More/better data:</strong> Collect more training samples, apply augmentation</li>
+          <li><strong>Reduce model complexity:</strong> Fewer layers/neurons — match model size to data size</li>
+          <li><strong>Check data quality:</strong> Ensure no data leakage between train and test splits</li>
+          <li><strong>Cross-validation:</strong> Use k-fold to get a more reliable validation estimate</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q" onclick="toggleQA(this)">Explain the Universal Approximation Theorem. <span class="tag">Theory</span> <span class="qa-chevron">▾</span></div>
+      <div class="qa-a">The Universal Approximation Theorem states that a feedforward neural network with a single hidden layer containing a sufficient number of neurons (with a non-linear activation function) can approximate any continuous function on a compact subset of Rⁿ to any desired degree of accuracy. This is the theoretical justification for why neural networks are so powerful — they're not just good at some functions, they can approximate ANY function. Important caveats: it doesn't say how many neurons are needed (could be exponential), and it doesn't say how to find those weights (training). In practice, depth (many layers) tends to be more efficient than width (many neurons in one layer).</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q" onclick="toggleQA(this)">What is the dying ReLU problem and how do you fix it? <span class="tag">Activations</span> <span class="qa-chevron">▾</span></div>
+      <div class="qa-a">A "dying ReLU" neuron is one that always outputs zero — it receives negative inputs every time, so ReLU clamps them all to 0. Once stuck, the gradient is also 0, so weights never update — the neuron is permanently dead. This can happen due to large learning rates or poor initialization.
+        <ul>
+          <li><strong>Leaky ReLU:</strong> f(z) = max(0.01z, z) — allows small gradient for negative inputs</li>
+          <li><strong>ELU (Exponential Linear Unit):</strong> Smooth negative region, better mean activation</li>
+          <li><strong>He initialization:</strong> Proper weight initialization reduces initial dead neurons</li>
+          <li><strong>Lower learning rate:</strong> Prevents large negative weight updates</li>
+          <li><strong>Batch normalization:</strong> Keeps activations centered, reduces dead zones</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 11: CHEATSHEET -->
+<!-- ══════════════════════════════════════════════════ -->
+<section id="cheatsheet">
+<div class="page">
+  <div class="section-label">Section 11</div>
+  <h2 class="section-title reveal">Quick Reference Cheatsheet</h2>
+
+  <h3 style="font-family:var(--display);font-size:1.15rem;margin-bottom:1rem;color:var(--text2);">Activation Function Selection</h3>
+  <div class="cheat-grid reveal">
+    <div class="cheat-card"><div class="label">Hidden Layers</div><div class="value">ReLU</div></div>
+    <div class="cheat-card"><div class="label">Binary Output</div><div class="value">Sigmoid</div></div>
+    <div class="cheat-card"><div class="label">Multi-class Output</div><div class="value">Softmax</div></div>
+    <div class="cheat-card"><div class="label">Regression Output</div><div class="value">Linear (none)</div></div>
+    <div class="cheat-card"><div class="label">Vanishing Gradient</div><div class="value">Leaky ReLU / ELU</div></div>
+    <div class="cheat-card"><div class="label">Deep Networks</div><div class="value">ReLU + Batch Norm</div></div>
+  </div>
+
+  <h3 style="font-family:var(--display);font-size:1.15rem;margin:2rem 0 1rem;color:var(--text2);">Loss Function Selection</h3>
+  <div class="cheat-grid reveal">
+    <div class="cheat-card"><div class="label">Regression</div><div class="value">MSE / Huber</div></div>
+    <div class="cheat-card"><div class="label">Binary Classification</div><div class="value">Binary Cross-Entropy</div></div>
+    <div class="cheat-card"><div class="label">Multi-class</div><div class="value">Categorical Cross-Entropy</div></div>
+    <div class="cheat-card"><div class="label">Noisy Regression</div><div class="value">Huber Loss</div></div>
+  </div>
+
+  <h3 style="font-family:var(--display);font-size:1.15rem;margin:2rem 0 1rem;color:var(--text2);">Key Formulas</h3>
+  <pre class="reveal"><span class="cm">─── Neuron ────────────────────────────────────────────────────</span>
+<span class="var">z</span>  <span class="op">=</span> <span class="var">W</span>·<span class="var">x</span> <span class="op">+</span> <span class="var">b</span>                 <span class="cm"># linear step (pre-activation)</span>
+<span class="var">a</span>  <span class="op">=</span> <span class="fn">f</span>(<span class="var">z</span>)                    <span class="cm"># activation output</span>
+
+<span class="cm">─── Weight Update ─────────────────────────────────────────────</span>
+<span class="var">W</span>  <span class="op">=</span> <span class="var">W</span> <span class="op">-</span> <span class="var">lr</span> <span class="op">*</span> ∂<span class="var">J</span>/∂<span class="var">W</span>          <span class="cm"># gradient descent</span>
+
+<span class="cm">─── Loss Functions ────────────────────────────────────────────</span>
+<span class="var">MSE</span>    <span class="op">=</span> (<span class="num">1</span>/<span class="var">n</span>) · Σ(<span class="var">y</span><span class="op">-</span><span class="var">ŷ</span>)<span class="op">²</span>
+<span class="var">BCE</span>    <span class="op">=</span> <span class="op">-</span>[<span class="var">y</span>·<span class="fn">log</span>(<span class="var">ŷ</span>) <span class="op">+</span> (<span class="num">1</span><span class="op">-</span><span class="var">y</span>)·<span class="fn">log</span>(<span class="num">1</span><span class="op">-</span><span class="var">ŷ</span>)]
+<span class="var">CCE</span>    <span class="op">=</span> <span class="op">-</span>Σ <span class="var">y</span>·<span class="fn">log</span>(<span class="var">ŷ</span>)
+
+<span class="cm">─── Activations ───────────────────────────────────────────────</span>
+<span class="var">ReLU</span>      <span class="var">f</span>(<span class="var">z</span>) <span class="op">=</span> <span class="fn">max</span>(<span class="num">0</span>, <span class="var">z</span>)
+<span class="var">Sigmoid</span>   <span class="var">f</span>(<span class="var">z</span>) <span class="op">=</span> <span class="num">1</span> <span class="op">/</span> (<span class="num">1</span> <span class="op">+</span> <span class="fn">e</span><span class="op">^</span><span class="op">-</span><span class="var">z</span>)
+<span class="var">Tanh</span>      <span class="var">f</span>(<span class="var">z</span>) <span class="op">=</span> (<span class="var">e</span><span class="op">^</span><span class="var">z</span> <span class="op">-</span> <span class="var">e</span><span class="op">^</span><span class="op">-</span><span class="var">z</span>) <span class="op">/</span> (<span class="var">e</span><span class="op">^</span><span class="var">z</span> <span class="op">+</span> <span class="var">e</span><span class="op">^</span><span class="op">-</span><span class="var">z</span>)
+<span class="var">Softmax</span>   <span class="var">f</span>(<span class="var">zᵢ</span>) <span class="op">=</span> <span class="var">e</span><span class="op">^</span><span class="var">zᵢ</span> <span class="op">/</span> Σ<span class="var">e</span><span class="op">^</span><span class="var">zⱼ</span></pre>
+
+  <h3 style="font-family:var(--display);font-size:1.15rem;margin:2rem 0 1rem;color:var(--text2);">Hyperparameter Starting Points</h3>
+  <div class="cheat-grid reveal">
+    <div class="cheat-card"><div class="label">Learning Rate</div><div class="value">0.001 (Adam default)</div></div>
+    <div class="cheat-card"><div class="label">Batch Size</div><div class="value">32 or 64</div></div>
+    <div class="cheat-card"><div class="label">Epochs</div><div class="value">50–100 + early stop</div></div>
+    <div class="cheat-card"><div class="label">Dropout Rate</div><div class="value">0.2 – 0.5</div></div>
+    <div class="cheat-card"><div class="label">Optimizer</div><div class="value">Adam (lr=0.001)</div></div>
+    <div class="cheat-card"><div class="label">Weight Init</div><div class="value">He (ReLU) / Xavier</div></div>
+    <div class="cheat-card"><div class="label">L2 λ</div><div class="value">1e-4 to 1e-2</div></div>
+    <div class="cheat-card"><div class="label">Momentum</div><div class="value">0.9 (SGD)</div></div>
+  </div>
+
+  <div class="callout blue reveal" style="margin-top:2rem;">
+    <span class="callout-icon">🧠</span>
+    <div class="callout-body">
+      <div class="callout-title">The Complete Training Flow (Memorize This)</div>
+      <div class="callout-text" style="font-family:var(--mono);font-size:0.85rem;line-height:1.9;">
+        Input → [z = Wx+b] → [a = f(z)] → repeat per layer → Prediction (ŷ) →<br>
+        Loss J(y, ŷ) → Backprop (∂J/∂W via chain rule) → W = W − lr·∂J/∂W → repeat
+      </div>
+    </div>
+  </div>
+
+  <!-- Training tips table -->
+  <div class="tbl-wrap reveal" style="margin-top:2rem;">
+    <table>
+      <thead><tr><th>Problem</th><th>Symptom</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge badge-rose">Overfitting</span></td><td>Val loss rises, train loss falls</td><td>Dropout, L2, more data, early stopping</td></tr>
+        <tr><td><span class="badge badge-amber">Underfitting</span></td><td>Both losses remain high</td><td>Bigger model, more epochs, better features</td></tr>
+        <tr><td><span class="badge badge-rose">Exploding Gradient</span></td><td>Loss → NaN, weights → ∞</td><td>Gradient clipping, lower LR, better init</td></tr>
+        <tr><td><span class="badge badge-violet">Vanishing Gradient</span></td><td>Early layers don't learn</td><td>ReLU, BatchNorm, residual connections</td></tr>
+        <tr><td><span class="badge badge-amber">Slow Convergence</span></td><td>Loss decreases very slowly</td><td>Increase LR, use Adam, LR scheduling</td></tr>
+        <tr><td><span class="badge badge-rose">Oscillating Loss</span></td><td>Loss jumps up and down</td><td>Decrease LR, increase batch size</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</section>
+
+<footer>
+  <p>Neural Networks — Complete Reference Guide &nbsp;·&nbsp; Built for interview prep &amp; concept refreshing</p>
+  <p style="margin-top:0.5rem;color:var(--text3);">Sections: Intro · Perceptron · Activations · Forward Pass · Loss · Backprop · Training · Regularization · Architectures · Interview Q&amp;A · Cheatsheet</p>
+</footer>
+
+<script>
+// ── Reveal on scroll ──────────────────────────────────────────
+const observer = new IntersectionObserver(entries => {
+  entries.forEach((e, i) => {
+    if (e.isIntersecting) {
+      setTimeout(() => e.target.classList.add('visible'), 60);
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.08 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ── Q&A toggle ────────────────────────────────────────────────
+function toggleQA(el) {
+  const ans = el.nextElementSibling;
+  const isOpen = ans.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.qa-a').forEach(a => a.classList.remove('open'));
+  document.querySelectorAll('.qa-q').forEach(q => q.classList.remove('active'));
+  // Toggle clicked
+  if (!isOpen) {
+    ans.classList.add('open');
+    el.classList.add('active');
+  }
+}
+
+// ── Active nav link on scroll ────────────────────────────────
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('.nav-links a');
+const scrollSpy = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      navLinks.forEach(l => l.style.color = '');
+      const link = document.querySelector(`.nav-links a[href="#${e.target.id}"]`);
+      if (link) link.style.color = 'var(--cyan)';
+    }
+  });
+}, { rootMargin: '-40% 0px -55% 0px' });
+sections.forEach(s => scrollSpy.observe(s));
+</script>
+</body>
+</html>
