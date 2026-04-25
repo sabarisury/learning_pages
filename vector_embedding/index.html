@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vector Embeddings Guide</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap" rel="stylesheet">
+
+  <!-- React & ReactDOM (Production versions) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+  <!-- Babel for in-browser JSX compilation -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    /* Basic reset to ensure full viewport usage without scrollbars/margins */
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: #0a0a0f;
+      color: #e8e8f0;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    /* Custom scrollbar to match the dark theme */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0a0a0f;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2a2a40;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #7c6af7;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // ── DATA ─────────────────────────────────────────────────────────────────────
+
+    const wordVecs = {
+      king:  { color: "#f7c46a", dims: [0.91, 0.78, -0.82, -0.12, -0.05, -0.08] },
+      queen: { color: "#a78bfa", dims: [0.89, 0.72,  0.85, -0.10, -0.06, -0.07] },
+      apple: { color: "#f87171", dims: [-0.05, -0.03, 0.01,  0.88, -0.12,  0.61] },
+      dog:   { color: "#34d399", dims: [-0.08,  0.14, -0.02, -0.18,  0.94, -0.11] },
+    };
+    const dimLabels = ["royal","power","gender","food","animal","tech"];
+
+    const wordPoints = [
+      {w:"king",  x:0.72,y:0.22,g:"royalty",c:"#f7c46a"},
+      {w:"queen", x:0.78,y:0.30,g:"royalty",c:"#f7c46a"},
+      {w:"prince",x:0.65,y:0.28,g:"royalty",c:"#f7c46a"},
+      {w:"throne",x:0.70,y:0.38,g:"royalty",c:"#f7c46a"},
+      {w:"cat",   x:0.18,y:0.62,g:"animals",c:"#34d399"},
+      {w:"dog",   x:0.22,y:0.70,g:"animals",c:"#34d399"},
+      {w:"kitten",x:0.14,y:0.68,g:"animals",c:"#34d399"},
+      {w:"puppy", x:0.26,y:0.75,g:"animals",c:"#34d399"},
+      {w:"apple", x:0.55,y:0.75,g:"food",   c:"#f87171"},
+      {w:"banana",x:0.62,y:0.70,g:"food",   c:"#f87171"},
+      {w:"mango", x:0.58,y:0.80,g:"food",   c:"#f87171"},
+      {w:"fruit", x:0.50,y:0.72,g:"food",   c:"#f87171"},
+      {w:"AI",    x:0.30,y:0.20,g:"tech",   c:"#a78bfa"},
+      {w:"neural",x:0.36,y:0.28,g:"tech",   c:"#a78bfa"},
+      {w:"model", x:0.42,y:0.22,g:"tech",   c:"#a78bfa"},
+      {w:"data",  x:0.38,y:0.32,g:"tech",   c:"#a78bfa"},
+    ];
+
+    const sgSentence = ["The","cat","sat","on","the","mat","and","purred"];
+
+    const tabs = [
+      {id:"what",       label:"1. What is it?"},
+      {id:"problem",    label:"2. The Problem"},
+      {id:"geometry",   label:"3. Geometry"},
+      {id:"how",        label:"4. How it Learns"},
+      {id:"models",     label:"5. Models"},
+      {id:"contextual", label:"6. Contextual"},
+      {id:"similarity", label:"7. Similarity"},
+      {id:"dims",       label:"8. Dimensions"},
+      {id:"finetune",   label:"9. Fine-tuning"},
+      {id:"vectordb",   label:"10. Vector DBs"},
+      {id:"apps",       label:"11. Applications"},
+      {id:"iq",         label:"12. Interviews"},
+    ];
+
+    const iqData = {
+      "⚡ Fundamentals": [
+        {q:"What is a vector embedding?",
+         a:"An embedding maps discrete objects (words, images, users, etc.) into a continuous vector space — a list of real numbers — where similar items are placed close together. The key insight: meaning is encoded as geometry. Direction and distance in this space correspond to semantic relationships. E.g., 'cat' → [0.2, 0.7, -0.1, ...]"},
+        {q:"Why are embeddings better than one-hot encoding?",
+         a:"One-hot encoding creates huge sparse vectors with zero semantic info — 'cat' and 'kitten' look as different as 'cat' and 'democracy'. Problems: (1) Vocabulary of 50,000 = 50,000-dim vector mostly zeros. (2) No relationship between similar words. (3) Cannot generalize. Embeddings are dense (short, info-rich), semantic (similar meaning = similar vector), and learned from actual usage data."},
+        {q:"What is cosine similarity? Why use it instead of Euclidean distance?",
+         a:"Cosine similarity = dot(A,B) / (|A| × |B|). It measures the angle between two vectors, ranging from -1 (opposite) to 1 (identical direction). We prefer it over Euclidean distance because magnitude shouldn't affect meaning — 'cat' appearing 100x vs 10x in a corpus shouldn't make it semantically different. Cosine cares only about direction (meaning), not length (frequency)."},
+        {q:"Explain king − man + woman = queen geometrically.",
+         a:"The vector offset 'man → woman' encodes 'gender change' as a direction in space. This works because 'king' and 'queen' both appear near 'royal', 'throne', 'crown' — so they cluster together. But 'king' also appears near 'man' while 'queen' appears near 'woman' — that directional offset is the gender concept. Adding it to king navigates you to queen."},
+        {q:"What is the curse of dimensionality in the context of embeddings?",
+         a:"At very high dimensions, all vectors become roughly equidistant from each other, making similarity search less meaningful. The volume of high-dimensional space grows exponentially fast so points become sparse — nearest neighbors aren't actually near. In practice, 768 dims is a sweet spot for NLP. Beyond ~3000 dims, you also get huge memory and compute costs with diminishing returns."},
+        {q:"What is the difference between static and contextual embeddings?",
+         a:"Static embeddings (Word2Vec, GloVe) assign one fixed vector per word regardless of context — 'bank' always gets the same vector whether it's financial or a river bank. Contextual embeddings (BERT, GPT) generate a different vector per occurrence based on the full sentence. This solves polysemy (words with multiple meanings), making them far more powerful for most NLP tasks."},
+        {q:"What types of data can be embedded?",
+         a:"Almost anything: (1) Words/tokens — Word2Vec, GloVe. (2) Sentences/documents — SBERT, Universal Sentence Encoder. (3) Images — ResNet features, CLIP. (4) Graphs — Node2Vec, GraphSAGE. (5) Users/Items — matrix factorization, two-tower models. (6) Code — CodeBERT. (7) Audio — wav2vec. (8) Multimodal — CLIP embeds text and images in the SAME space."},
+      ],
+      "🧠 Architecture & Training": [
+        {q:"What does an embedding layer look like in a neural network?",
+         a:"An embedding layer is a lookup table — a matrix of shape (vocab_size × embedding_dim). For input token ID 42, the forward pass returns row 42. That's literally it. In PyTorch: nn.Embedding(num_embeddings=10000, embedding_dim=256). Gradients flow back during training and update the matrix. Memory = vocab_size × embedding_dim × 4 bytes."},
+        {q:"What is negative sampling and why is it used in Word2Vec?",
+         a:"Full softmax over 50,000+ words per training step is too expensive. Negative sampling replaces it: instead of predicting the true word from all words, train a binary classifier — 'is this a real context word or a random word?' Only 5–20 random negatives are sampled per positive example, reducing computation from O(vocab) to O(negatives). Empirically, 5–20 negatives gives near-identical quality to full softmax."},
+        {q:"CBOW vs Skip-Gram — differences and when to use each?",
+         a:"CBOW: input = context words → output = center word. Faster, better for frequent words. Skip-Gram: input = center word → output = context words. Slower but better for rare words. Skip-Gram is preferred in practice. Why? Rare words benefit more from being used as input many times. For large vocab with many rare words, Skip-Gram produces better embeddings."},
+        {q:"How does GloVe differ from Word2Vec?",
+         a:"Word2Vec uses local context windows — it sees word pairs one at a time. GloVe (Global Vectors) builds a full co-occurrence matrix X where X_ij = how often word i appears near word j in the entire corpus. It then factorizes this matrix to minimize: (w_i · w_j + b_i + b_j − log(X_ij))². GloVe captures both local and global statistics simultaneously, often performing better on analogy tasks."},
+        {q:"How does FastText handle out-of-vocabulary (OOV) words?",
+         a:"FastText breaks words into character n-grams. 'running' → <ru, run, unn, nni, nin, ing, ng>. Word embedding = sum of all its n-gram embeddings. Even a completely unseen word 'embedificationalism' can be embedded by summing its character n-grams. Benefits: (1) Handles OOV words. (2) Better for morphologically rich languages (Turkish, Finnish). (3) Captures spelling patterns and prefixes/suffixes."},
+        {q:"What is triplet loss? When would you use it?",
+         a:"Triplet loss uses three examples: anchor (A), positive (P, same class), negative (N, different class). Loss = max(0, d(A,P) − d(A,N) + margin). It pushes A closer to P and farther from N by at least 'margin'. Used when you have labeled pairs/triplets: face recognition, product similarity, sentence similarity fine-tuning (SBERT). Harder to train than cross-entropy but produces better-calibrated similarity spaces."},
+        {q:"What is contrastive learning? How does SimCSE work?",
+         a:"Contrastive learning trains embeddings by pushing similar pairs together and dissimilar pairs apart, without labeled data. SimCSE (Simple Contrastive Sentence Embeddings): pass the same sentence through BERT twice with different dropout masks — these become the positive pair. All other sentences in the batch are negatives. Loss = InfoNCE. Result: dramatically better sentence embeddings than standard BERT fine-tuning, using zero extra labels."},
+      ],
+      "🚀 Applied / System Design": [
+        {q:"How would you build a semantic search system from scratch?",
+         a:"(1) Choose embedding model — Sentence-BERT or OpenAI embeddings. (2) Embed all documents offline, store in vector DB (Pinecone, Qdrant, pgvector). (3) Build ANN index — HNSW for best recall/speed trade-off. (4) At query time: embed query → ANN search for top-K candidates → optional re-ranking with cross-encoder. (5) Key decisions: embedding model, chunk size, overlap, index type, re-ranking strategy. Monitor with precision@K and MRR."},
+        {q:"What is RAG? What role do embeddings play?",
+         a:"RAG (Retrieval-Augmented Generation) grounds LLM responses in actual documents. Pipeline: (1) Offline: chunk documents, embed each chunk, store in vector DB. (2) Online: embed user query, retrieve top-K most similar chunks via ANN search, pass [chunks + query] to LLM. Embeddings are the 'long-term memory' of RAG. Quality of retrieval directly determines quality of generation — bad embeddings = bad RAG."},
+        {q:"You have 10 million product descriptions. How do you find duplicates efficiently?",
+         a:"(1) Embed all descriptions with a fast model (all-MiniLM-L6-v2 — tiny, 384 dims). (2) Build FAISS IVF-PQ index — clusters + quantization handles 10M vectors in RAM. (3) For each item, query its K nearest neighbors. (4) Threshold by cosine similarity (>0.95 = near-duplicate). (5) Optional: LSH (Locality Sensitive Hashing) as a cheap first pass to reduce candidates. At 10M scale, brute-force is impossible — ANN is mandatory."},
+        {q:"How do you evaluate embedding quality?",
+         a:"Intrinsic evaluation: (1) Word analogy benchmarks (king-man+woman=queen accuracy on Google Analogy Dataset). (2) Similarity correlation with human judgments (STS-B, SimLex-999). Extrinsic evaluation: (3) Downstream task performance (classification accuracy, IR metrics). For production: (4) Precision@K and Recall@K on labeled eval set. (5) MRR (Mean Reciprocal Rank). (6) NDCG@K. Always prefer extrinsic — intrinsic benchmarks don't always predict real task quality."},
+        {q:"What is a two-tower model? Where is it used?",
+         a:"Two separate neural networks encode queries and items independently into the same embedding space. Similarity = dot product of both embeddings. Benefit: item embeddings can be pre-computed offline — at query time, only the query tower runs. Used in: YouTube recommendation (user tower + video tower), Pinterest visual search, Google semantic search. The key architectural insight: offline pre-computation enables real-time retrieval over billions of items."},
+        {q:"How do multimodal embeddings work? What is CLIP?",
+         a:"CLIP (Contrastive Language-Image Pre-training, OpenAI) trains two encoders — a text encoder and an image encoder — to map matching text-image pairs close together in a shared embedding space. Loss: contrastive, pushing matching pairs together and non-matching apart. Result: you can embed both 'a photo of a cat' and an actual cat photo into the same space and find matches. Enables zero-shot image classification, cross-modal search, and image generation guidance."},
+      ],
+      "🎯 Tricky / Deep": [
+        {q:"Can you directly compare embeddings from two different models?",
+         a:"No! Different models produce incomparable vector spaces — they have no shared coordinate system. Even the same model trained twice from different random seeds produces incomparable spaces (same structure, different rotation). To align spaces you need: (1) Procrustes analysis — find optimal rotation matrix W such that WA ≈ B. (2) CCA (Canonical Correlation Analysis). (3) Linear mapping trained on anchor pairs. This is used in cross-lingual embedding alignment."},
+        {q:"If two words have high cosine similarity, does that mean they're synonyms?",
+         a:"Not necessarily. High similarity means they appear in similar contexts — which could mean: (1) Synonyms (happy/joyful). (2) Antonyms — 'hot' and 'cold' often appear near the same words (temperature, weather, food). (3) Hypernyms (dog/animal). (4) Topically related words (hospital/doctor). Distributional similarity ≠ semantic equivalence. Always validate embeddings on your actual downstream task."},
+        {q:"How do positional embeddings work in transformers?",
+         a:"Transformers process all tokens in parallel — unlike RNNs, they have no inherent notion of order. Without position info, 'cat sat on mat' = 'mat on sat cat'. Solution: add position vectors to token embeddings. Types: (1) Sinusoidal (original paper) — fixed, mathematical functions. (2) Learned absolute — trainable position vectors. (3) RoPE (Rotary) — encodes position as rotation, handles long sequences well. (4) ALiBi — adds linear bias to attention scores. Modern LLMs mostly use RoPE."},
+        {q:"What is vector quantization? Trade-offs?",
+         a:"Vector quantization compresses high-dimensional vectors to save memory and speed up search. Product Quantization (PQ): split a 768-dim vector into M sub-vectors, assign each to a centroid from a codebook of K centroids. Result: represent 768 × 4 bytes = 3KB as just M × log2(K) bits ≈ 64 bytes (48x compression). Trade-offs: (1) Memory: 10–50x reduction. (2) Speed: 10–100x faster distance computation. (3) Recall: small drop in finding true nearest neighbor. Used in FAISS for billion-scale ANN search."},
+        {q:"How would you detect semantic drift in word embeddings over time?",
+         a:"(1) Train embeddings on time-sliced corpora (e.g., yearly news archives). (2) Align spaces using Procrustes analysis — find rotation W to map year N to year N+1. (3) Measure cosine distance between a word's representation across years after alignment. (4) Words with high drift = semantic change. Example: 'gay' in 1950s vs 2020s has very different nearest neighbors. Applications: tracking evolving jargon, detecting bias shifts, lexicographic research."},
+        {q:"How do you make embedding search work in real-time at scale?",
+         a:"Key techniques: (1) ANN algorithms — HNSW (best recall), IVF (fast with large datasets), ScaNN (Google's quantization-aware). (2) Quantization (INT8/PQ) — reduce vector size, speeds up distance computation. (3) Sharding — split index across machines, fan-out query to all shards. (4) Caching — cache embeddings of common queries. (5) Two-stage retrieval — fast ANN for top-100, expensive re-ranker for top-10. Pinterest serves 1B+ image queries/day using these techniques."},
+      ],
+    };
+
+    // ── HELPERS ──────────────────────────────────────────────────────────────────
+
+    function cosSim(a, b) {
+      const dot = a[0]*b[0] + a[1]*b[1];
+      return dot / (Math.hypot(...a) * Math.hypot(...b));
+    }
+
+    // ── STYLES ───────────────────────────────────────────────────────────────────
+
+    const C = {
+      bg:"#0a0a0f", surface:"#12121a", surface2:"#1a1a26",
+      border:"#2a2a40", accent:"#7c6af7", accent2:"#f7c46a",
+      accent3:"#34d399", accent4:"#f87171", text:"#e8e8f0", muted:"#7878a0",
+    };
+
+    const S = {
+      page:   {background:C.bg, color:C.text, minHeight:"100vh", fontFamily:"Georgia,serif"},
+      nav:    {background:"rgba(10,10,15,0.97)", borderBottom:`1px solid ${C.border}`,
+                padding:"8px 12px", display:"flex", gap:4, overflowX:"auto",
+                position:"sticky", top:0, zIndex:100, flexWrap:"nowrap"},
+      navBtn: a=>({fontFamily:"monospace", fontSize:11, padding:"5px 10px", borderRadius:6,
+                border:`1px solid ${a?C.accent:C.border}`,
+                background:a?`${C.accent}22`:"transparent",
+                color:a?"#a78bfa":C.muted, cursor:"pointer", whiteSpace:"nowrap", flexShrink:0}),
+      content:{maxWidth:820, margin:"0 auto", padding:"28px 16px"},
+      h2:     {fontFamily:"'Syne',sans-serif", fontSize:24, fontWeight:800, marginBottom:10, lineHeight:1.2},
+      h3:     {fontFamily:"'Syne',sans-serif", fontSize:17, fontWeight:700, marginBottom:8},
+      label:  {fontFamily:"monospace", fontSize:10, color:C.accent, letterSpacing:"0.18em",
+                textTransform:"uppercase", marginBottom:8, display:"block"},
+      p:      {color:"#b0b0c8", fontSize:14, lineHeight:1.8, marginBottom:12},
+      card:   {background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:20, marginBottom:16},
+      analogy:{background:"linear-gradient(135deg,rgba(124,106,247,0.08),rgba(52,211,153,0.05))",
+                border:"1px solid rgba(124,106,247,0.25)", borderRadius:12, padding:"14px 18px", marginBottom:16},
+      btn:    (a,col=C.accent)=>({fontFamily:"monospace", fontSize:11, padding:"5px 11px", borderRadius:6,
+                border:`1px solid ${a?col:C.border}`, background:a?`${col}22`:C.surface2,
+                color:a?col:C.muted, cursor:"pointer", transition:"all 0.18s"}),
+      tag:    (col)=>({fontFamily:"monospace", fontSize:11, padding:"2px 8px", borderRadius:4,
+                background:`${col}18`, color:col, border:`1px solid ${col}44`, display:"inline-block"}),
+      table:  {width:"100%", borderCollapse:"collapse", fontSize:13, marginBottom:16},
+      th:     {fontFamily:"monospace", fontSize:10, color:C.muted, padding:"7px 10px",
+                borderBottom:`1px solid ${C.border}`, textAlign:"left", textTransform:"uppercase", letterSpacing:"0.1em"},
+      td:     {padding:"7px 10px", borderBottom:`1px solid ${C.surface2}`, color:"#c0c0d8", fontSize:13},
+      stepNum:{fontFamily:"monospace", fontSize:11, color:C.accent, background:"rgba(124,106,247,0.12)",
+                border:"1px solid rgba(124,106,247,0.3)", borderRadius:6, padding:"3px 7px",
+                minWidth:30, textAlign:"center", flexShrink:0, height:24, lineHeight:"18px"},
+      highlight:(col=C.accent2)=>({color:col, fontStyle:"italic"}),
+    };
+
+    // ── SUB-COMPONENTS ───────────────────────────────────────────────────────────
+
+    function Analogy({title, children}) {
+      return (
+        <div style={S.analogy}>
+          <div style={{color:C.accent3, fontWeight:700, fontSize:12, marginBottom:6, textTransform:"uppercase", letterSpacing:"0.05em"}}>💡 {title}</div>
+          <div style={{color:"#c0c0d8", fontStyle:"italic", fontSize:13, lineHeight:1.75}}>{children}</div>
+        </div>
+      );
+    }
+
+    function Step({n, title, desc}) {
+      return (
+        <div style={{display:"flex", gap:12, marginBottom:14, alignItems:"flex-start"}}>
+          <div style={S.stepNum}>{n}</div>
+          <div>
+            <div style={{fontWeight:700, fontSize:14, marginBottom:2}}>{title}</div>
+            <div style={{color:C.muted, fontSize:13, lineHeight:1.6}}>{desc}</div>
+          </div>
+        </div>
+      );
+    }
+
+    function VecDisplay({word}) {
+      if (!word) return <div style={{color:C.muted, fontSize:13, padding:"1rem", textAlign:"center"}}>← click a word to see its vector</div>;
+      const {color, dims} = wordVecs[word];
+      const cols = ["#a78bfa","#f7c46a","#34d399","#f87171","#60a5fa","#fbbf24"];
+      return (
+        <div>
+          <div style={{color, fontWeight:700, marginBottom:8, fontSize:15, fontFamily:"'Syne',sans-serif"}}>"{word}"</div>
+          {dims.map((v,i) => (
+            <div key={i} style={{display:"flex", alignItems:"center", gap:6, marginBottom:5}}>
+              <span style={{color:C.muted, width:44, fontSize:10, fontFamily:"monospace"}}>{dimLabels[i]}</span>
+              <div style={{height:8, borderRadius:4, transition:"width 0.6s", width:Math.abs(v)*80, background:v>0?cols[i]:"#444", minWidth:2}}/>
+              <span style={{color:C.muted, fontSize:10, fontFamily:"monospace", width:38, textAlign:"right"}}>{v.toFixed(2)}</span>
+            </div>
+          ))}
+          <div style={{color:C.muted, fontSize:10, marginTop:6, textAlign:"center", fontStyle:"italic", fontFamily:"monospace"}}>
+            [{dims.map(v=>v.toFixed(2)).join(", ")}, ...]
+          </div>
+        </div>
+      );
+    }
+
+    function WordSpaceCanvas({cluster}) {
+      const ref = useRef(null);
+      const [hov, setHov] = useState(null);
+      const hovRef = useRef(null);
+      hovRef.current = hov;
+
+      useEffect(()=>{
+        const canvas = ref.current; if (!canvas) return;
+        let raf;
+        function draw() {
+          const W=canvas.offsetWidth, H=canvas.offsetHeight;
+          canvas.width=W*devicePixelRatio; canvas.height=H*devicePixelRatio;
+          const ctx=canvas.getContext("2d"); ctx.scale(devicePixelRatio,devicePixelRatio);
+          ctx.clearRect(0,0,W,H);
+          ctx.strokeStyle="rgba(42,42,64,0.4)"; ctx.lineWidth=1;
+          for(let x=0;x<W;x+=50){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+          for(let y=0;y<H;y+=50){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+          wordPoints.forEach(p=>{
+            const px=p.x*W, py=p.y*H;
+            const active=cluster==="all"||p.g===cluster;
+            ctx.globalAlpha=active?1:0.12;
+            if(active&&cluster!=="all"){
+              wordPoints.filter(q=>q.g===p.g&&q.w!==p.w).forEach(q=>{
+                ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(q.x*W,q.y*H);
+                ctx.strokeStyle=p.c+"33";ctx.lineWidth=1;ctx.stroke();
+              });
+            }
+            const isHov=hovRef.current===p.w;
+            if(isHov){ctx.shadowBlur=16;ctx.shadowColor=p.c;}
+            ctx.beginPath();ctx.arc(px,py,isHov?9:6,0,Math.PI*2);
+            ctx.fillStyle=p.c;ctx.fill();
+            ctx.shadowBlur=0;
+            ctx.fillStyle=isHov?"#fff":"#e8e8f0";
+            ctx.font=`${isHov?"bold ":""}${isHov?13:11}px Syne,sans-serif`;
+            ctx.fillText(p.w,px+10,py+4);
+            ctx.globalAlpha=1;
+          });
+          raf=requestAnimationFrame(draw);
+        }
+        draw();
+        const ro=new ResizeObserver(draw); ro.observe(canvas);
+        return ()=>{cancelAnimationFrame(raf);ro.disconnect();};
+      },[cluster]);
+
+      function onMouseMove(e){
+        const r=ref.current.getBoundingClientRect();
+        const mx=e.clientX-r.left, my=e.clientY-r.top;
+        const W=ref.current.offsetWidth, H=ref.current.offsetHeight;
+        const found=wordPoints.find(p=>Math.hypot(p.x*W-mx,p.y*H-my)<14);
+        setHov(found?found.w:null);
+      }
+      return <canvas ref={ref} onMouseMove={onMouseMove} onMouseLeave={()=>setHov(null)} style={{display:"block",width:"100%",height:300,cursor:"crosshair"}}/>;
+    }
+
+    function CosineCanvas({pair}) {
+      const ref = useRef(null);
+      const pairs = {
+        "king/queen":{a:[0.8,0.5],b:[0.75,0.62],ca:"#f7c46a",cb:"#a78bfa"},
+        "cat/dog":   {a:[0.2,0.7],b:[0.25,0.8], ca:"#34d399",cb:"#60a5fa"},
+        "king/apple":{a:[0.8,0.5],b:[0.7,0.2],  ca:"#f7c46a",cb:"#f87171"},
+        "man/woman": {a:[0.5,0.3],b:[0.55,0.45],ca:"#60a5fa",cb:"#f87171"},
+        "hot/cold":  {a:[0.6,0.4],b:[0.58,0.42],ca:"#f87171",cb:"#60a5fa"},
+      };
+      const {a,b,ca,cb} = pairs[pair]||pairs["king/queen"];
+      const sim = cosSim(a,b);
+
+      useEffect(()=>{
+        const canvas=ref.current; if(!canvas) return;
+        function draw(){
+          const W=canvas.offsetWidth, H=250;
+          canvas.width=W*devicePixelRatio; canvas.height=H*devicePixelRatio;
+          const ctx=canvas.getContext("2d"); ctx.scale(devicePixelRatio,devicePixelRatio);
+          ctx.clearRect(0,0,W,H);
+          const ox=W/2, oy=H*0.62, sc=Math.min(W,H)*0.36;
+          ctx.strokeStyle="rgba(42,42,64,0.8)";ctx.lineWidth=1;
+          ctx.beginPath();ctx.moveTo(20,oy);ctx.lineTo(W-20,oy);ctx.stroke();
+          ctx.beginPath();ctx.moveTo(ox,10);ctx.lineTo(ox,H-10);ctx.stroke();
+          ctx.fillStyle="rgba(42,42,64,0.2)";
+          ctx.beginPath();ctx.arc(ox,oy,sc,0,-Math.PI,true);ctx.fill();
+          const norm=v=>{const m=Math.hypot(...v);return[v[0]/m,v[1]/m];};
+          function drawVec(v,color,label){
+            const n=norm(v);
+            const ex=ox+n[0]*sc, ey=oy-n[1]*sc;
+            ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ex,ey);
+            ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.stroke();
+            const ang=Math.atan2(-(ey-oy),(ex-ox));
+            ctx.beginPath();ctx.moveTo(ex,ey);
+            ctx.lineTo(ex-11*Math.cos(ang-0.4),ey+11*Math.sin(ang-0.4));
+            ctx.lineTo(ex-11*Math.cos(ang+0.4),ey+11*Math.sin(ang+0.4));
+            ctx.closePath();ctx.fillStyle=color;ctx.fill();
+            ctx.fillStyle=color;ctx.font="bold 13px Syne,sans-serif";ctx.textAlign="center";
+            ctx.fillText(label,ex+(n[0]>0?22:-22),ey+(n[1]>0?-12:18));
+          }
+          drawVec(a,ca,pair.split("/")[0]);
+          drawVec(b,cb,pair.split("/")[1]);
+          const [na,nb]=[norm(a),norm(b)];
+          ctx.beginPath();ctx.arc(ox,oy,44,-Math.atan2(na[1],na[0]),-Math.atan2(nb[1],nb[0]),Math.atan2(na[1],na[0])>Math.atan2(nb[1],nb[0]));
+          ctx.strokeStyle="rgba(106,247,196,0.7)";ctx.lineWidth=2;ctx.stroke();
+        }
+        draw();
+        const ro=new ResizeObserver(draw);ro.observe(canvas);
+        return()=>ro.disconnect();
+      },[pair]);
+
+      const sc=sim>0.85?C.accent3:sim>0.5?C.accent2:C.accent4;
+      return (
+        <div>
+          <canvas ref={ref} style={{display:"block",width:"100%"}}/>
+          <div style={{textAlign:"center",fontFamily:"monospace",fontSize:20,fontWeight:700,marginTop:8,color:sc}}>
+            similarity: {sim.toFixed(3)}
+          </div>
+          <div style={{textAlign:"center",fontSize:11,color:C.muted,marginTop:4}}>
+            1.0 = same direction &nbsp;|&nbsp; 0 = unrelated &nbsp;|&nbsp; -1 = opposite
+          </div>
+        </div>
+      );
+    }
+
+    function SkipGramViz() {
+      const [center, setCenter] = useState(2);
+      const [auto, setAuto] = useState(false);
+      const win=2;
+      useEffect(()=>{
+        if(!auto) return;
+        const id=setInterval(()=>setCenter(c=>(c+1)%sgSentence.length),900);
+        return()=>clearInterval(id);
+      },[auto]);
+      const ctxW=sgSentence.filter((_,i)=>i!==center&&Math.abs(i-center)<=win);
+      return (
+        <div>
+          <p style={{...S.p, textAlign:"center", marginBottom:12}}>Click any word to make it the center word. Watch the context window shift.</p>
+          <div style={{display:"flex",gap:7,flexWrap:"wrap",justifyContent:"center",marginBottom:12}}>
+            {sgSentence.map((w,i)=>{
+              let bg=C.surface2,col=C.muted,border=`1px solid ${C.border}`;
+              if(i===center){bg="rgba(247,196,106,0.15)";col="#f7c46a";border="2px solid rgba(247,196,106,0.5)";}
+              else if(Math.abs(i-center)<=win){bg="rgba(124,106,247,0.1)";col="#a78bfa";border="2px solid rgba(124,106,247,0.4)";}
+              return(
+                <div key={i} onClick={()=>setCenter(i)} style={{padding:"6px 12px",borderRadius:8,background:bg,
+                  color:col,border,cursor:"pointer",fontWeight:600,fontSize:14,transition:"all 0.22s",
+                  transform:i===center?"scale(1.1)":"scale(1)"}}>
+                  {w}
+                </div>
+              );
+            })}
+          </div>
+          <div style={{background:"rgba(52,211,153,0.07)",border:"1px solid rgba(52,211,153,0.2)",
+            borderRadius:8,padding:10,textAlign:"center",fontFamily:"monospace",fontSize:12,color:C.accent3}}>
+            input: "{sgSentence[center]}" → predict: [{ctxW.map(w=>`"${w}"`).join(", ")}]
+          </div>
+          <div style={{display:"flex",gap:16,justifyContent:"center",marginTop:10,flexWrap:"wrap"}}>
+            {[["#f7c46a","Center word (input)"],["#a78bfa","Context (predict these)"]].map(([c,l])=>(
+              <div key={l} style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:C.muted}}>
+                <div style={{width:10,height:10,borderRadius:"50%",background:c}}/>{l}
+              </div>
+            ))}
+          </div>
+          <button onClick={()=>setAuto(a=>!a)} style={{display:"block",margin:"12px auto 0",fontFamily:"monospace",
+            fontSize:12,padding:"5px 14px",borderRadius:6,border:"1px solid #f7c46a",
+            background:"rgba(247,196,106,0.08)",color:"#f7c46a",cursor:"pointer"}}>
+            {auto?"⏹ Stop":"▶ Auto-play"}
+          </button>
+        </div>
+      );
+    }
+
+    function IQSection({title,items}) {
+      const [open,setOpen]=useState(null);
+      return (
+        <div style={{marginBottom:20}}>
+          <div style={{fontWeight:800,color:C.accent2,marginBottom:10,fontSize:13,
+            display:"flex",alignItems:"center",gap:8,textTransform:"uppercase",letterSpacing:"0.05em"}}>
+            {title}
+            <div style={{flex:1,height:1,background:C.border}}/>
+          </div>
+          {items.map((item,i)=>(
+            <div key={i} style={{background:C.surface,border:`1px solid ${open===i?C.accent:C.border}`,
+              borderRadius:8,marginBottom:5,overflow:"hidden",transition:"border-color 0.2s"}}>
+              <div onClick={()=>setOpen(open===i?null:i)}
+                style={{padding:"11px 14px",cursor:"pointer",display:"flex",gap:9,alignItems:"flex-start",fontWeight:600,fontSize:13}}>
+                <span style={{color:C.accent,fontFamily:"monospace",fontSize:10,minWidth:26,marginTop:2}}>{String(i+1).padStart(2,"0")}</span>
+                <span style={{flex:1}}>{item.q}</span>
+                <span style={{color:C.muted,fontSize:11,transform:open===i?"rotate(180deg)":"none",transition:"transform 0.2s",flexShrink:0}}>▼</span>
+              </div>
+              {open===i&&(
+                <div style={{padding:"0 14px 12px 49px",color:"#9898b8",fontSize:13,lineHeight:1.75,borderTop:`1px solid ${C.surface2}`}}>
+                  {item.a}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // ── MAIN ─────────────────────────────────────────────────────────────────────
+
+    function App() {
+      const [tab, setTab] = useState("what");
+      const [activeWord, setActiveWord] = useState(null);
+      const [cluster, setCluster] = useState("all");
+      const [cosPair, setCosPair] = useState("king/queen");
+
+      return (
+        <div style={S.page}>
+          {/* HERO */}
+          <div style={{background:"radial-gradient(ellipse 80% 60% at 50% 35%,rgba(124,106,247,0.14) 0%,transparent 70%)",
+            padding:"36px 16px 24px",textAlign:"center",borderBottom:`1px solid ${C.border}`}}>
+            <div style={{fontFamily:"monospace",fontSize:10,color:C.accent3,background:"rgba(52,211,153,0.08)",
+              border:"1px solid rgba(52,211,153,0.2)",padding:"3px 12px",borderRadius:20,display:"inline-block",
+              marginBottom:12,letterSpacing:"0.18em",textTransform:"uppercase"}}>After Neural Networks →</div>
+            <h1 style={{fontFamily:"'Syne',sans-serif",fontSize:"clamp(1.8rem,6vw,3.5rem)",fontWeight:800,marginBottom:10,
+              background:"linear-gradient(135deg,#e8e8f0 30%,#a78bfa 70%,#34d399)",
+              WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",lineHeight:1.1}}>
+              Vector Embeddings
+            </h1>
+            <p style={{...S.p,maxWidth:520,margin:"0 auto",fontStyle:"italic",fontSize:13}}>
+              Complete visual guide — every concept, animated, from scratch. All 30 interview questions included.
+            </p>
+          </div>
+
+          {/* NAV */}
+          <nav style={S.nav}>
+            {tabs.map(t=><button key={t.id} style={S.navBtn(tab===t.id)} onClick={()=>setTab(t.id)}>{t.label}</button>)}
+          </nav>
+
+          <div style={S.content}>
+
+            {/* ══════════════════════════════════════════════════════════════════════
+                TAB 1 — WHAT IS IT
+            ══════════════════════════════════════════════════════════════════════ */}
+            {tab==="what"&&(
+              <div>
+                <span style={S.label}>Chapter 01</span>
+                <h2 style={S.h2}>What is a Vector Embedding?</h2>
+                <p style={S.p}>Computers only understand numbers. An embedding turns <em style={S.highlight()}>words, sentences, images, products</em> — basically anything — into a list of numbers that <strong>captures meaning</strong>.</p>
+
+                <Analogy title="Real World Analogy">
+                  Imagine rating every person you know on 3 scales: <em>how sporty</em>, <em>how bookish</em>, <em>how social</em>.
+                  Aarav = [8, 3, 9] and Riya = [7, 2, 8] — very similar! This is exactly what embeddings do.
+                  They place items in a multi-dimensional "personality space" where similar items end up close together.
+                </Analogy>
+
+                <p style={S.p}>Click a word to see its embedding — the actual numbers the model assigns to it:</p>
+                <div style={S.card}>
+                  <div style={{textAlign:"center",fontFamily:"monospace",fontSize:10,color:C.muted,marginBottom:14,textTransform:"uppercase",letterSpacing:"0.1em"}}>Word → Vector (simplified)</div>
+                  <div style={{display:"flex",alignItems:"center",gap:14,flexWrap:"wrap",justifyContent:"center"}}>
+                    <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"center"}}>
+                      {["king","queen","apple","dog"].map(w=>(
+                        <div key={w} onClick={()=>setActiveWord(activeWord===w?null:w)}
+                          style={{padding:"7px 14px",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:17,
+                            background:`${wordVecs[w].color}18`,color:wordVecs[w].color,
+                            border:`2px solid ${activeWord===w?wordVecs[w].color:wordVecs[w].color+"44"}`,
+                            transition:"all 0.2s",transform:activeWord===w?"scale(1.08)":"scale(1)"}}>
+                          {w}
+                        </div>
+                      ))}
+                    </div>
+                    <span style={{color:C.muted,fontSize:18}}>→</span>
+                    <div style={{background:C.surface2,border:`1px solid ${C.border}`,borderRadius:8,padding:"12px 14px",minWidth:200,minHeight:80}}>
+                      <VecDisplay word={activeWord}/>
+                    </div>
+                  </div>
+                </div>
+                <p style={S.p}>Those numbers aren't random — they're <em style={S.highlight()}>learned from millions of texts</em> so that words used in similar contexts end up with similar numbers. This is the fundamental magic.</p>
+
+                <div style={S.card}>
+                  <h3 style={S.h3}>Key Properties of Embeddings</h3>
+                  {[
+                    ["Dense","Short, information-packed vectors (128–3072 dims) instead of huge sparse vectors"],
+                    ["Semantic","Similar meaning = similar vector. Distance encodes relatedness."],
+                    ["Learnable","Trained from data, not hand-crafted. No human labeling needed."],
+                    ["Generalizable","Words/images not seen during training can still be understood by context."],
+                    ["Composable","Vectors can be averaged, added, subtracted to represent compound concepts."],
+                  ].map(([k,v])=>(
+                    <div key={k} style={{display:"flex",gap:10,marginBottom:8,alignItems:"flex-start"}}>
+                      <span style={{...S.tag("#a78bfa"),flexShrink:0}}>{k}</span>
+                      <span style={{color:C.muted,fontSize:13,lineHeight:1.6}}>{v}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════════════════
+                TAB 2 — THE PROBLEM
+            ══════════════════════════════════════════════════════════════════════ */}
+            {tab==="problem"&&(
+              <div>
+                <span style={S.label}>Chapter 02</span>
+                <h2 style={S.h2}>Why Not Just Use Simple Numbers?</h2>
+                <p style={S.p}>Before embeddings, there were two naive approaches. Both fail in important ways.</p>
+
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:16}}>
+                  <div style={{...S.card,border:"1px solid rgba(248,113,113,0.4)",margin:0}}>
+                    <div style={{color:"#f87171",fontWeight:700,marginBottom:8,fontSize:13}}>✗ Approach 1: Assign Numbers</div>
+                    <p style={{...S.p,fontSize:12,marginBottom:8}}>cat=1, dog=2, apple=3... Seems simple but the numbers imply fake relationships. Is cat really "half" of apple? Is apple "between" cat and something?</p>
+                    <div style={{fontFamily:"monospace",fontSize:11,color:C.muted}}>cat=1, dog=2, apple=3<br/>|cat−apple| = 2<br/>|dog−apple| = 1<br/>...but cat and apple are NOT more similar than dog and apple!</div>
+                  </div>
+                  <div style={{...S.card,border:"1px solid rgba(248,113,113,0.4)",margin:0}}>
+                    <div style={{color:"#f87171",fontWeight:700,marginBottom:8,fontSize:13}}>✗ Approach 2: One-Hot</div>
+                    <p style={{...S.p,fontSize:12,marginBottom:8}}>Each word = one 1 among thousands of 0s. Vocabulary of 50,000 words = 50,000-dim vector.</p>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:2,marginBottom:6}}>
+                      {Array.from({length:40},(_,i)=>(
+                        <div key={i} style={{width:11,height:11,borderRadius:2,background:i===6?"#f87171":"#1a1a26",border:`1px solid ${C.border}`}}/>
+                      ))}
+                    </div>
+                    <div style={{fontSize:11,color:C.muted}}>❌ Huge sparse vectors &nbsp;❌ No semantic info &nbsp;❌ "cat"≠"kitten" by design</div>
+                  </div>
+                </div>
+
+                <div style={{...S.card,border:"1px solid rgba(52,211,153,0.3)"}}>
+                  <div style={{color:C.accent3,fontWeight:700,marginBottom:8,fontSize:13}}>✓ The Embedding Solution</div>
+                  <p style={{...S.p,fontSize:13,marginBottom:10}}>Dense, learned vectors where every number is meaningful and similar words land close together in the space.</p>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+                    {[["cat",[0.78,0.62,-0.11,0.04],"#34d399"],["kitten",[0.81,0.65,-0.08,0.07],"#34d399"],["apple",[0.12,-0.22,0.88,0.31],"#f87171"],["democracy",[-0.31,0.52,-0.14,0.89],"#a78bfa"]].map(([w,v,c])=>(
+                      <div key={w}>
+                        <div style={{fontFamily:"monospace",fontSize:11,color:c,marginBottom:4}}>"{w}"</div>
+                        {v.map((n,i)=>(
+                          <div key={i} style={{display:"flex",alignItems:"center",gap:4,marginBottom:3}}>
+                            <div style={{height:7,borderRadius:3,background:n>0?c:"#555",width:Math.abs(n)*60,minWidth:2}}/>
+                            <span style={{fontFamily:"monospace",fontSize:9,color:C.muted}}>{n.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                  <p style={{...S.p,fontSize:12,marginTop:12,marginBottom:0}}>Notice: cat and kitten have very similar bars. apple and democracy are completely different. <em style={S.highlight(C.accent3)}>Meaning encoded as geometry.</em></p>
+                </div>
+              </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════════════════
+                TAB 3 — GEOMETRY
+            ══════════════════════════════════════════════════════════════════════ */}
+            {tab==="geometry"&&(
+              <div>
+                <span style={S.label}>Chapter 03</span>
+                <h2 style={S.h2}>The Geometry of Meaning</h2>
+                <p style={S.p}>Embeddings don't just store meanings — they organize them in <em style={S.highlight()}>geometric space</em>. Similar things cluster together. Relationships become directions you can navigate with arithmetic.</p>
+
+                <div style={S.card}>
+                  <h3 style={S.h3}>2D Word Space — Hover to Explore</h3>
+                  <p style={{...S.p,fontSize:12,marginBottom:10}}>Each word is a point in space. Similar words cluster. Click a button to highlight semantic groups.</p>
+                  <div style={{background:C.surface2,borderRadius:8,overflow:"hidden",border:`1px solid ${C.border}`}}>
+                    <WordSpaceCanvas cluster={cluster}/>
+                  </div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:10}}>
+                    {[["all","All"],["royalty","👑 Royalty"],["animals","🐾 Animals"],["food","🍎 Food"],["tech","💻 Tech"]].map(([c,l])=>(
+                      <button key={c} style={S.btn(cluster===c)} onClick={()=>setCluster(c)}>{l}</button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={S.card}>
+                  <h3 style={S.h3}>⚡ Vector Arithmetic — The Famous Example</h3>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"center",flexWrap:"wrap",gap:8,
+                    fontSize:"clamp(13px,2.5vw,18px)",fontWeight:700,margin:"16px 0"}}>
+                    {[["king","#f7c46a"],["−",null],["man","#a78bfa"],["+"  ,null],["woman","#f87171"],["≈",null],["queen","#34d399"]].map(([w,c],i)=>(
+                      c ? <span key={i} style={{padding:"5px 12px",borderRadius:7,background:`${c}18`,color:c,
+                        ...(w==="queen"?{border:`2px solid ${c}`,boxShadow:`0 0 14px ${c}44`}:{})}}>{w}</span>
+                        : <span key={i} style={{color:C.muted,fontSize:20}}>{w}</span>
+                    ))}
+                  </div>
+                  <p style={{...S.p,fontSize:13,textAlign:"center"}}>The vector offset "man→woman" encodes <em>gender change</em> as a direction. Adding that direction to "king" navigates you to "queen".</p>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"center"}}>
+                    {["Paris − France + Italy ≈ Rome","walked − walk + run ≈ ran","Tokyo − Japan + France ≈ Paris"].map(t=>(
+                      <span key={t} style={S.tag("#a78bfa")}>{t}</span>
+                    ))}
+                  </div>
+                </div>
+
+                <Analogy title="Why does vector arithmetic work?">
+                  Words that appear in similar contexts end up in the same region. "King" and "queen" both appear near "royal", "throne", "crown" — so they cluster together. But "king" also appears near "he/his/man" while "queen" appears near "she/her/woman". That tiny directional offset between the two clusters IS the gender concept encoded as a vector.
+                </Analogy>
+
+                <div style={S.card}>
+                  <h3 style={S.h3}>Other Geometric Relationships</h3>
+                  <table style={S.table}>
+                    <thead><tr><th style={S.th}>Relationship</th><th style={S.th}>Example</th><th style={S.th}>What the direction encodes</th></tr></thead>
+                    <tbody>
+                      {[
+                        ["Gender","king → queen","Gender change (masculine → feminine)"],
+                        ["Capital city","France → Paris","Capital relationship"],
+                        ["Verb tense","walk → walked","Past tense formation"],
+                        ["Comparative","big → bigger","Degree of comparison"],
+                        ["Country → Language","France → French","Official language"],
+                        ["Singular → Plural","cat → cats","Pluralization"],
+                      ].map(([r,e,w])=>(
+                        <tr key={r}><td style={S.td}><span style={S.tag("#a78bfa")}>{r}</span></td>
+                        <td style={{...S.td,fontFamily:"monospace",fontSize:11,color:C.accent2}}>{e}</td>
+                        <td style={{...S.td,color:C.muted,fontSize:12}}>{w}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════════════════
+                TAB 4 — HOW IT LEARNS
+            ══════════════════════════════════════════════════════════════════════ */}
+            {tab==="how"&&(
+              <div>
+                <span style={S.label}>Chapter 04</span>
+                <h2 style={S.h2}>How Do Embeddings Actually Learn?</h2>
+                <p style={S.p}>You don't hand-craft embeddings. You train a neural network on a <em style={S.highlight()}>self-supervised task</em> and the learned weights become the embeddings. No labels needed!</p>
+
+                <div style={S.card}>
+                  <h3 style={S.h3}>Skip-Gram — Predict Context from Center Word</h3>
+                  <SkipGramViz/>
+                </div>
+
+                <div style={S.card}>
+                  <h3 style={S.h3}>CBOW — Predict Center Word from Context</h3>
+                  <p style={{...S.p,fontSize:13}}>The reverse of Skip-Gram. Given surrounding words, predict the center word. Faster to train but worse at rare words.</p>
+                  <div style={{background:C.surface2,borderRadius:8,padding:14,fontFamily:"monospace",fontSize:12}}>
+                    <div style={{color:C.muted,marginBottom:4}}>Input: ["The", ___, "sat", "on"]</div>
+                    <div style={{color:C.accent3}}>Task: predict → "cat"</div>
+                  </div>
+                </div>
+
+                <div style={S.card}>
+                  <h3 style={S.h3}>Training Step by Step</h3>
+                  <Step n="01" title="Start with random vectors" desc="Every word gets a random vector — pure noise. cat = [0.23, -0.87, 0.11, ...]"/>
+                  <Step n="02" title="Run through the neural network" desc="The center word's random vector is fed into a small neural network. It tries to predict which context words should appear."/>
+                  <Step n="03" title="Measure how wrong it was" desc="Compare predicted words vs actual context words. Calculate loss (error). At first, it's very wrong."/>
+                  <Step n="04" title="Backpropagate the gradient" desc="'cat' and 'kitten' both appeared near 'meow' so their vectors get nudged closer together. 'Apple' appeared nowhere near them — stays far away."/>
+                  <Step n="05" title="Repeat billions of times" desc="After training on millions of sentences, random noise transforms into meaningful semantic vectors that capture language structure."/>
+                  <Step n="06" title="Throw away the output layer" desc="The prediction head is discarded. Only the embedding matrix is kept. This IS the product — your trained embeddings."/>
+                </div>
+
+                <Analogy title="Self-Supervised Learning — No Labels Needed">
+                  The brilliance: the task IS the data. Every sentence in a book already tells you which words appear near each other. No human needs to label anything. This is why you can train on Wikipedia, CommonCrawl, or any text corpus without any annotation effort — the structure of language itself is the supervision signal.
+                </Analogy>
+
+                <div style={S.card}>
+                  <h3 style={S.h3}>Negative Sampling — Making Training Practical</h3>
+                  <p style={{...S.p,fontSize:13}}>The output layer needs to predict probabilities over all 50,000+ words in the vocabulary. Computing full softmax over 50,000 words for every word in every sentence is extremely slow.</p>
+                  <p style={{...S.p,fontSize:13}}>Solution: <strong>Negative Sampling</strong> — instead of predicting the correct word from all words, train a binary classifier:</p>
+                  <div style={{background:C.surface2,borderRadius:8,padding:14,marginBottom:12}}>
+                    <div style={{color:C.accent3,fontFamily:"monospace",fontSize:12,marginBottom:6}}>✓ Real pair: ("cat", "sat") → predict: 1 (real context)</div>
+                    <div style={{color:"#f87171",fontFamily:"monospace",fontSize:12,marginBottom:6}}>✗ Fake pair: ("cat", "democracy") → predict: 0 (random word)</div>
+                    <div style={{color:"#f87171",fontFamily:"monospace",fontSize:12,marginBottom:6}}>✗ Fake pair: ("cat", "aircraft") → predict: 0 (random word)</div>
+                    <div style={{color:C.muted,fontSize:11,marginTop:8}}>Only 5–20 negatives per positive. Training becomes ~1000x faster.</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════════════════
+                TAB 5 — MODELS
+            ══════════════════════════════════════════════════════════════════════ */}
+            {tab==="models"&&(
+              <div>
+                <span style={S.label}>Chapter 05</span>
+                <h2 style={S.h2}>Embedding Models — Word2Vec to Modern</h2>
+
+                {[
+                  {name:"Word2Vec", year:"2013", color:"#f7c46a", who:"Google (Mikolov et al.)",
+                   desc:"The paper that started the modern embedding era. Two architectures: Skip-Gram and CBOW. Trained on Google News (100B words). Introduced the famous vector arithmetic (king−man+woman≈queen).",
+                   pros:["Fast to train","Small model size","Good for word-level tasks"],
+                   cons:["One vector per word (no context)","Struggles with rare words","OOV words get no embedding"]},
+                  {name:"GloVe", year:"2014", color:"#a78bfa", who:"Stanford NLP",
+                   desc:"Global Vectors for Word Representation. Builds a global co-occurrence matrix from the entire corpus, then factorizes it. Captures both local context (like Word2Vec) and global statistics simultaneously.",
+                   pros:["Captures global corpus statistics","Often better on analogy tasks","Open, well-documented"],
+                   cons:["Still static — one vector per word","Memory-intensive co-occurrence matrix","Slower to train than Word2Vec"]},
+                  {name:"FastText", year:"2016", color:"#34d399", who:"Facebook AI",
+                   desc:"Extension of Word2Vec that represents words as bags of character n-grams. 'running' → <ru, run, unn, nni, ing, ng>. Word embedding = sum of n-gram embeddings.",
+                   pros:["Handles OOV words","Better for morphologically rich languages","Captures spelling/morphology"],
+                   cons:["Larger model (stores n-gram table)","Still static embeddings","Character n-grams can be noisy"]},
+                  {name:"BERT", year:"2018", color:"#60a5fa", who:"Google",
+                   desc:"Bidirectional Encoder Representations from Transformers. First truly contextual embeddings. Reads the ENTIRE sentence in both directions simultaneously. Pre-trained with Masked Language Modeling (predict masked words) and Next Sentence Prediction.",
+                   pros:["Contextual — different vector per occurrence","Bidirectional context","Massive transfer learning capability"],
+                   cons:["Expensive to run (768–1024 dims)","Not optimized for sentence similarity out of box","Requires fine-tuning for many tasks"]},
+                  {name:"Sentence-BERT (SBERT)", year:"2019", color:"#f87171", who:"UKP Lab",
+                   desc:"Fine-tuned BERT specifically for producing sentence-level embeddings. Uses siamese network trained with natural language inference pairs. Makes BERT embeddings 65x faster for semantic similarity tasks.",
+                   pros:["Fast sentence-level similarity","Works well out of the box","Open source, many variants"],
+                   cons:["Smaller than full BERT models","Less versatile than base BERT","Requires specific fine-tuning per language/domain"]},
+                ].map(m=>(
+                  <div key={m.name} style={{...S.card,borderLeft:`3px solid ${m.color}`}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                      <span style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:16,color:m.color}}>{m.name}</span>
+                      <span style={S.tag(m.color)}>{m.year}</span>
+                      <span style={{color:C.muted,fontSize:11}}>{m.who}</span>
+                    </div>
+                    <p style={{...S.p,fontSize:13,marginBottom:10}}>{m.desc}</p>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                      <div>
+                        <div style={{color:C.accent3,fontSize:11,fontWeight:700,marginBottom:4}}>✓ Strengths</div>
+                        {m.pros.map(p=><div key={p} style={{color:C.muted,fontSize:12,marginBottom:2}}>• {p}</div>)}
+                      </div>
+                      <div>
+                        <div style={{color:"#f87171",fontSize:11,fontWeight:700,marginBottom:4}}>✗ Weaknesses</div>
+                        {m.cons.map(c=><div key={c} style={{color:C.muted,fontSize:12,marginBottom:2}}>• {c}</div>)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════════════════
+                TAB 6 — CONTEXTUAL
+            ══════════════════════════════════════════════════════════════════════ */}
+            {tab==="contextual"&&(
+              <div>
+                <span style={S.label}>Chapter 06</span>
+                <h2 style={S.h2}>Static vs Contextual Embeddings</h2>
+                <p style={S.p}>The single biggest limitation of Word2Vec and GloVe: every word gets exactly ONE vector, forever. This breaks for polysemous words — words with multiple meanings.</p>
+
+                <div style={S.card}>
+                  <h3 style={S.h3}>The Polysemy Problem</h3>
+                  {[
+                    ["bank","I went to the bank to deposit money.","Financial institution — vault, transactions"],
+                    ["bank","I sat by the river bank and watched the ducks.","River bank — water, nature, outdoor"],
+                    ["plant","The plant grew taller every day.","Living organism — biology, photosynthesis"],
+                    ["plant","They decided to plant a spy in the organization.","Place secretly — espionage, covert"],
+                  ].map(([w,s,m],i)=>(
+                    <div key={i} style={{background:C.surface2,borderRadius:8,padding:12,marginBottom:8}}>
+                      <div style={{fontFamily:"monospace",fontSize:12,marginBottom:4}}>
+                        <span style={{color:C.muted}}>"</span>
+                        {s.split(w).map((part,j,arr)=>(
+                          j<arr.length-1 ? [part,<span key={j} style={{color:"#f7c46a",fontWeight:700,background:"rgba(247,196,106,0.15)",padding:"1px 3px",borderRadius:3}}>{w}</span>] : part
+                        ))}
+                        <span style={{color:C.muted}}>"</span>
+                      </div>
+                      <div style={{color:C.muted,fontSize:11}}>Meaning here: <em>{m}</em></div>
+                    </div>
+                  ))}
+                  <p style={{...S.p,fontSize:13,marginTop:10,marginBottom:0}}>Word2Vec gives all four "bank" and "plant" occurrences the <em style={{color:"#f87171"}}>same vector</em>. BERT generates a <em style={{color:C.accent3}}>completely different vector</em> for each based on full sentence context.</p>
+                </div>
+
+                <div style={S.card}>
+                  <h3 style={S.h3}>How BERT Creates Contextual Embeddings</h3>
+                  <Step n="01" title="Read the full sentence" desc="BERT processes ALL tokens in the sentence simultaneously, attending to every other token."/>
+                  <Step n="02" title="Multi-head self-attention" desc="Each word 'looks at' all other words in the sentence. The attention weights determine how much each context word influences the current word's representation."/>
+                  <Step n="03" title="Context-aware output" desc="'Bank' in sentence 1 attends heavily to 'deposit' and 'money' → financial embedding. 'Bank' in sentence 2 attends to 'river' and 'ducks' → nature embedding."/>
+                  <Step n="04" title="Different vector, same word" desc="The final output vector for 'bank' is completely different in each sentence — capturing the correct sense."/>
+                </div>
+
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:12,marginBottom:16}}>
+                  {[
+                    {name:"Word2Vec",type:"Static",col:"#f87171",note:"1 vector per word. Fast. Simple."},
+                    {name:"GloVe",type:"Static",col:"#f87171",note:"1 vector per word. Global co-occurrence."},
+                    {name:"FastText",type:"Static",col:"#f87171",note:"1 vector per word. Handles OOV."},
+                    {name:"BERT",type:"Contextual",col:"#34d399",note:"1 vector per occurrence. Bidirectional."},
+                    {name:"GPT",type:"Contextual",col:"#34d399",note:"Left-to-right context. Good for generation."},
+                    {name:"SBERT",type:"Sentence-level",col:"#a78bfa",note:"1 vector per sentence. Optimized for similarity."},
+                  ].map(m=>(
+                    <div key={m.name} style={{...S.card,margin:0,border:`1px solid ${m.col}44`}}>
+                      <div style={{fontWeight:700,fontSize:13,marginBottom:4}}>{m.name}</div>
+                      <div style={{...S.tag(m.col),marginBottom:8}}>{m.type}</div>
+                      <div style={{color:C.muted,fontSize:11,lineHeight:1.5}}>{m.note}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════════════════
+                TAB 7 — SIMILARITY
+            ══════════════════════════════════════════════════════════════════════ */}
+            {tab==="similarity"&&(
+              <div>
+                <span style={S.label}>Chapter 07</span>
+                <h2 style={S.h2}>Measuring Similarity</h2>
+                <p style={S.p}>Once you have embeddings, how do you measure how similar two things are? There are several distance metrics, each with trade-offs.</p>
+
+                <div style={S.card}>
+                  <h3 style={S.h3}>Cosine Similarity — Interactive Demo</h3>
+                  <p style={{...S.p,fontSize:12,marginBottom:12}}>Select a pair to see the angle between their vectors. Smaller angle = more similar.</p>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
+                    {["king/queen","cat/dog","king/apple","man/woman","hot/cold"].map(p=>(
+                      <button key={p} style={S.btn(cosPair===p)} onClick={()=>setCosPair(p)}>{p.replace("/"," vs ")}</button>
+                    ))}
+                  </div>
+                  <CosineCanvas pair={cosPair}/>
+                </div>
+
+                <div style={S.card}>
+                  <h3 style={S.h3}>Similarity Metrics Compared</h3>
+                  <table style={S.table}>
+                    <thead><tr><th style={S.th}>Metric</th><th style={S.th}>Formula</th><th style={S.th}>Range</th><th style={S.th}>Best For</th></tr></thead>
+                    <tbody>
+                      {[
+                        ["Cosine Similarity","A·B / (|A|×|B|)","[-1, 1]","Text & NLP (most common)", "#34d399"],
+                        ["Dot Product","Σ aᵢbᵢ","(-∞, ∞)","Attention, retrieval with trained models","#a78bfa"],
+                        ["Euclidean Distance","√Σ(aᵢ-bᵢ)²","[0, ∞)","When magnitude matters (image features)","#f7c46a"],
+                        ["Manhattan Distance","Σ|aᵢ-bᵢ|","[0, ∞)","Sparse vectors, taxicab geometry","#f87171"],
+                      ].map(([m,f,r,b,c])=>(
+                        <tr key={m}><td style={S.td}><span style={S.tag(c)}>{m}</span></td>
+                        <td style={{...S.td,fontFamily:"monospace",fontSize:11,color:C.accent2}}>{f}</td>
+                        <td style={{...S.td,fontFamily:"monospace",fontSize:11,color:C.muted}}>{r}</td>
+                        <td style={{...S.td,color:C.muted,fontSize:12}}>{b}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <Analogy title="Why Cosine Over Euclidean for Text?">
+                  If "cat" appears 100 times in a corpus and "kitten" appears 10 times, their vectors might have different magnitudes (lengths) but similar directions. Euclidean distance would see them as far apart due to the length difference. Cosine similarity ignores length — it only looks at the angle (direction = meaning). Same direction = same meaning, regardless of how "loud" the vector is.
+                </Analogy>
+
+                <div style={S.card}>
+                  <h3 style={S.h3}>Interpreting Cosine Similarity Scores</h3>
+                  {[
+                    ["> 0.95","Near-duplicate content — likely paraphrases","#34d399"],
+                    ["0.85 – 0.95","Very similar — same topic, closely related","#34d399"],
+                    ["0.70 – 0.85","Related — same domain or broad topic","#f7c46a"],
+                    ["0.50 – 0.70","Somewhat related — loose connection","#f87171"],
+                    ["< 0.50","Unrelated — different topics entirely","#f87171"],
+                  ].map(([range,desc,col])=>(
+                    <div key={range} style={{display:"flex",gap:10,marginBottom:6,alignItems:"center"}}>
+                      <span style={{...S.tag(col),minWidth:80,textAlign:"center",fontFamily:"monospace"}}>{range}</span>
+                      <span style={{color:C.muted,fontSize:12}}>{desc}</span>
+                    </div>
+                  ))}
+                  <p style={{...S.p,fontSize:11,marginTop:10,marginBottom:0,fontStyle:"italic"}}>Note: thresholds vary by model and domain. Always calibrate on your actual data.</p>
+                </div>
+              </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════════════════
+                TAB 8 — DIMENSIONS
+            ══════════════════════════════════════════════════════════════════════ */}
+            {tab==="dims"&&(
+              <div>
+                <span style={S.label}>Chapter 08</span>
+                <h2 style={S.h2}>Embedding Dimensions</h2>
+                <p style={S.p}>Real embeddings live in hundreds to thousands of dimensions. Each dimension (loosely) captures some latent aspect of meaning that emerged from training.</p>
+
+                <div style={S.card}>
+                  <h3 style={S.h3}>What Does Each Dimension Mean?</h3>
+                  <p style={{...S.p,fontSize:13}}>The dimensions in trained embeddings don't have human-interpretable labels like "royalness" or "gender". They're abstract learned features. However, some researchers have probed individual dimensions and found loose interpretations:</p>
+                  <div style={{background:C.surface2,borderRadius:8,padding:14,fontFamily:"monospace",fontSize:11}}>
+                    <div style={{color:C.accent2,marginBottom:6}}>dim[142]: seems to activate for animate objects (people, animals)</div>
+                    <div style={{color:C.accent3,marginBottom:6}}>dim[287]: negative for abstract concepts, positive for physical objects</div>
+                    <div style={{color:"#a78bfa",marginBottom:6}}>dim[521]: correlates with positive sentiment words</div>
+                    <div style={{color:C.muted}}>...most dimensions are inscrutable combinations of features</div>
+                  </div>
+                </div>
+
+                <div style={S.card}>
+                  <h3 style={S.h3}>Model Dimension Reference</h3>
+                  <table style={S.table}>
+                    <thead><tr><th style={S.th}>Model</th><th style={S.th}>Dims</th><th style={S.th}>Params</th><th style={S.th}>Speed</th><th style={S.th}>Quality</th></tr></thead>
+                    <tbody>
+                      {[
+                        ["Word2Vec","100–300","~30M","Very fast","Good for word tasks","#34d399"],
+                        ["GloVe 6B","300","~400MB","Very fast","Good analogy tasks","#34d399"],
+                        ["FastText","300","~2GB","Fast","Good + OOV handling","#34d399"],
+                        ["all-MiniLM-L6","384","22M","Very fast","Good sentence similarity","#f7c46a"],
+                        ["BERT base","768","110M","Medium","Strong general NLP","#a78bfa"],
+                        ["BERT large","1024","340M","Slow","Stronger, harder to run","#a78bfa"],
+                        ["text-embedding-3-small","1536","–","API call","Excellent general","#f7c46a"],
+                        ["text-embedding-3-large","3072","–","API call","State-of-art","#f87171"],
+                      ].map(([m,d,p,sp,q,c])=>(
+                        <tr key={m}><td style={S.td}><span style={{fontFamily:"monospace",fontSize:11}}>{m}</span></td>
+                        <td style={S.td}><span style={S.tag(c)}>{d}</span></td>
+                        <td style={{...S.td,fontFamily:"monospace",fontSize:11,color:C.muted}}>{p}</td>
+                        <td style={{...S.td,color:C.muted,fontSize:12}}>{sp}</td>
+                        <td style={{...S.td,color:C.muted,fontSize:12}}>{q}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style={S.card}>
+                  <h3 style={S.h3}>Choosing Embedding Dimensions — Trade-offs</h3>
+                  {[
+                    ["More dimensions →","More expressive capacity, captures finer semantic distinctions, better for complex tasks","#34d399"],
+                    ["More dimensions →","More memory (dims × 4 bytes per vector × N vectors)","#f87171"],
+                    ["More dimensions →","Slower similarity computation and ANN indexing","#f87171"],
+                    ["More dimensions →","Risk of curse of dimensionality at extreme sizes","#f87171"],
+                    ["Rule of thumb →","768 dims (BERT) is the sweet spot for most NLP tasks","#f7c46a"],
+                    ["For production →","Use dimensionality reduction (PCA, UMAP) to compress if needed","#a78bfa"],
+                  ].map(([k,v,c])=>(
+                    <div key={k} style={{display:"flex",gap:10,marginBottom:7,alignItems:"flex-start"}}>
+                      <span style={{...S.tag(c),flexShrink:0,fontSize:10}}>{k}</span>
+                      <span style={{color:C.muted,fontSize:12,lineHeight:1.6}}>{v}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <Analogy title="The Curse of Dimensionality">
+                  Imagine a 1D line. Two random points are at most 1 unit apart. Now 2D: max distance is √2. In 100D: max distance is √100 = 10. In 10,000D: max distance is 100. At very high dimensions, all random vectors become roughly the SAME distance from each other — roughly equidistant. This makes "closest neighbor" searches less meaningful because everything is similarly far away.
+                </Analogy>
+              </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════════════════
+                TAB 9 — FINE-TUNING
+            ══════════════════════════════════════════════════════════════════════ */}
+            {tab==="finetune"&&(
+              <div>
+                <span style={S.label}>Chapter 09</span>
+                <h2 style={S.h2}>Fine-tuning Embeddings</h2>
+                <p style={S.p}>Pre-trained embeddings are general purpose. For domain-specific tasks (medical, legal, code, e-commerce) you can adapt them to your specific data and task.</p>
+
+                <div style={S.card}>
+                  <h3 style={S.h3}>Why Fine-tune?</h3>
+                  <p style={{...S.p,fontSize:13}}>General embeddings trained on Wikipedia/news don't know that in medical text "MI" means "myocardial infarction" or that in your e-commerce catalog "wireless" and "Bluetooth" are nearly synonymous. Fine-tuning adapts the embedding space to your domain.</p>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                    <div style={{background:C.surface2,borderRadius:8,padding:12}}>
+                      <div style={{color:"#f87171",fontSize:12,fontWeight:700,marginBottom:6}}>General embedding says:</div>
+                      <div style={{fontFamily:"monospace",fontSize:11,color:C.muted}}>
+                        "MI" ≈ "Michigan" (geography)<br/>
+                        "BID" ≈ "auction"<br/>
+                        "prognosis" is rare/unknown
+                      </div>
+                    </div>
+                    <div style={{background:C.surface2,borderRadius:8,padding:12}}>
+                      <div style={{color:C.accent3,fontSize:12,fontWeight:700,marginBottom:6}}>Medical fine-tuned says:</div>
+                      <div style={{fontFamily:"monospace",fontSize:11,color:C.muted}}>
+                        "MI" ≈ "heart attack"<br/>
+                        "BID" ≈ "twice daily" (dosing)<br/>
+                        "prognosis" ≈ "outcome"
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={S.card}>
+                  <h3 style={S.h3}>Fine-tuning Approaches</h3>
+                  {[
+                    {name:"Full Fine-tuning",col:"#f7c46a",
+                     desc:"Update ALL weights of the pre-trained model on your domain data. Best quality, but requires lots of labeled data and compute. Risk: catastrophic forgetting of general knowledge."},
+                    {name:"Contrastive Learning (SimCSE, MNRL)",col:"#34d399",
+                     desc:"Push similar pairs together, dissimilar pairs apart. Doesn't need labels if you use data augmentation (dropout = cheap positive pairs). Very popular for sentence embeddings."},
+                    {name:"Triplet Loss Fine-tuning",col:"#a78bfa",
+                     desc:"Train with (anchor, positive, negative) triplets. max(0, d(A,P) − d(A,N) + margin). Great when you have labeled similar/dissimilar pairs from your domain."},
+                    {name:"Adapter Layers",col:"#60a5fa",
+                     desc:"Freeze the base model completely. Add small trainable layers (adapters) between transformer blocks. Only adapters are fine-tuned. Parameter-efficient: update <2% of parameters."},
+                    {name:"LoRA (Low-Rank Adaptation)",col:"#f87171",
+                     desc:"Decompose weight updates into low-rank matrices: ΔW = A×B where A and B are small. Extremely parameter-efficient. Widely used for LLM fine-tuning."},
+                  ].map(m=>(
+                    <div key={m.name} style={{...S.card,margin:"0 0 10px",border:`1px solid ${m.col}44`}}>
+                      <div style={{fontWeight:700,fontSize:13,color:m.col,marginBottom:6}}>{m.name}</div>
+                      <p style={{...S.p,fontSize:12,margin:0}}>{m.desc}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={S.card}>
+                  <h3 style={S.h3}>Contrastive Learning — The Modern Standard</h3>
+                  <Step n="01" title="Create pairs from your data" desc="Positive pairs: (query, relevant document), (question, answer), (product, description). Negative pairs: everything else in the batch (in-batch negatives)."/>
+                  <Step n="02" title="Forward pass both items" desc="Run query through encoder → embedding A. Run document through encoder → embedding B."/>
+                  <Step n="03" title="InfoNCE loss" desc="Maximize similarity of positive pairs, minimize similarity of negative pairs simultaneously. The whole batch participates in each loss computation."/>
+                  <Step n="04" title="Result" desc="Embeddings reorganize so your domain-specific similar items cluster together while unrelated items push apart."/>
+                </div>
+              </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════════════════
+                TAB 10 — VECTOR DBs
+            ══════════════════════════════════════════════════════════════════════ */}
+            {tab==="vectordb"&&(
+              <div>
+                <span style={S.label}>Chapter 10</span>
+                <h2 style={S.h2}>Vector Databases & Similarity Search</h2>
+                <p style={S.p}>Once you have embeddings, you need to <em style={S.highlight()}>search</em> them efficiently. With millions of vectors, brute-force comparison is too slow.</p>
+
+                <div style={S.card}>
+                  <h3 style={S.h3}>The Scaling Problem</h3>
+                  <div style={{background:C.surface2,borderRadius:8,padding:14,marginBottom:12}}>
+                    <div style={{color:"#f87171",fontFamily:"monospace",fontSize:12,marginBottom:6}}>
+                      Brute force: compare query to ALL N vectors<br/>
+                      1M docs × 768 dims × cos_sim = ~3 seconds ❌
+                    </div>
+                    <div style={{color:C.accent3,fontFamily:"monospace",fontSize:12}}>
+                      ANN index: pre-built structure → find ~nearest neighbors<br/>
+                      1M docs × 768 dims = ~5 milliseconds ✓
+                    </div>
+                  </div>
+                  <p style={{...S.p,fontSize:13}}>Approximate Nearest Neighbor (ANN) algorithms sacrifice a tiny bit of recall (might miss the true #1 closest) for massive speed gains.</p>
+                </div>
+
+                <div style={S.card}>
+                  <h3 style={S.h3}>ANN Algorithms</h3>
+                  {[
+                    {name:"HNSW",full:"Hierarchical Navigable Small World",col:"#34d399",
+                     desc:"Graph-based. Builds a multi-layer graph where each layer is a subset of nodes. Navigate from top (coarse) to bottom (fine) to find nearest neighbors. Best recall/speed trade-off. Used in Pinecone, Weaviate, Qdrant."},
+                    {name:"IVF",full:"Inverted File Index",col:"#f7c46a",
+                     desc:"Cluster vectors into K centroids (via k-means). At search time, only search within the nearest P clusters. Memory-efficient for billion-scale. Used with PQ compression in FAISS."},
+                    {name:"FAISS",full:"Facebook AI Similarity Search",col:"#a78bfa",
+                     desc:"Library (not a DB) by Facebook. Implements many ANN algorithms (IVF, HNSW, PQ). Can run in-memory or on GPU. Best choice for research and custom systems at scale."},
+                    {name:"ScaNN",full:"Scalable Nearest Neighbors",col:"#60a5fa",
+                     desc:"Google's ANN library. Uses anisotropic quantization — prioritizes quantizing directions that contribute more to inner product error. Powers Google Search."},
+                  ].map(m=>(
+                    <div key={m.name} style={{marginBottom:10,background:C.surface2,borderRadius:8,padding:12,borderLeft:`3px solid ${m.col}`}}>
+                      <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4}}>
+                        <span style={{fontWeight:700,fontSize:13,color:m.col}}>{m.name}</span>
+                        <span style={{color:C.muted,fontSize:11}}>{m.full}</span>
+                      </div>
+                      <p style={{...S.p,fontSize:12,margin:0}}>{m.desc}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={S.card}>
+                  <h3 style={S.h3}>Vector Database Options</h3>
+                  <table style={S.table}>
+                    <thead><tr><th style={S.th}>Database</th><th style={S.th}>Type</th><th style={S.th}>Best For</th><th style={S.th}>Notes</th></tr></thead>
+                    <tbody>
+                      {[
+                        ["Pinecone","Managed cloud","Production at scale","Fully managed, expensive, very reliable","#34d399"],
+                        ["Qdrant","Open source","High performance","Rust-based, great filtering, self-hosted","#a78bfa"],
+                        ["Weaviate","Open source","Schema-aware search","Rich query language, GraphQL API","#60a5fa"],
+                        ["Chroma","Open source","RAG prototyping","Lightest to set up, great for dev","#f7c46a"],
+                        ["pgvector","Postgres extension","Existing Postgres stack","SQL + vectors together, familiar tooling","#f87171"],
+                        ["Milvus","Open source","Billion-scale","Most scalable open source option","#a78bfa"],
+                      ].map(([n,t,b,note,c])=>(
+                        <tr key={n}><td style={S.td}><span style={{fontWeight:700,fontSize:12,color:C[c]??c}}>{n}</span></td>
+                        <td style={S.td}><span style={S.tag(c)}>{t}</span></td>
+                        <td style={{...S.td,color:C.muted,fontSize:12}}>{b}</td>
+                        <td style={{...S.td,color:C.muted,fontSize:11}}>{note}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style={S.card}>
+                  <h3 style={S.h3}>Vector Quantization — Compressing Embeddings</h3>
+                  <p style={{...S.p,fontSize:13}}>At scale, storing 768-dim float32 vectors gets expensive. 1 billion vectors = 768 × 4 bytes × 1B = 3TB. Quantization compresses this dramatically.</p>
+                  <Step n="PQ" title="Product Quantization" desc="Split the 768-dim vector into M sub-vectors of 96 dims each. Assign each sub-vector to one of 256 centroids from a codebook. Store only the centroid IDs. 768×4 bytes → 8 bytes (96x compression!). Small recall drop."/>
+                  <Step n="SQ" title="Scalar Quantization" desc="Round each float32 value to int8 (4x compression) or int4 (8x). Simple, fast, minimal recall impact. Used widely in production."/>
+                  <Step n="BQ" title="Binary Quantization" desc="Round each dimension to 0 or 1. 32x compression. Comparison via Hamming distance (very fast). OpenAI's text-embedding-3 models support this."/>
+                </div>
+              </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════════════════
+                TAB 11 — APPLICATIONS
+            ══════════════════════════════════════════════════════════════════════ */}
+            {tab==="apps"&&(
+              <div>
+                <span style={S.label}>Chapter 11</span>
+                <h2 style={S.h2}>Real-World Applications</h2>
+                <p style={S.p}>Embeddings are one of the most widely deployed ML techniques. Here are the most important applications in industry.</p>
+
+                {[
+                  {icon:"🔍",title:"Semantic Search",col:"#a78bfa",
+                   desc:"Go beyond keyword matching. Embed query + documents, find closest by meaning. A search for 'car accident' finds documents about 'vehicle collision' even if they don't share keywords.",
+                   example:"Elasticsearch, Algolia, Google Search use this at scale."},
+                  {icon:"🤖",title:"RAG (Retrieval-Augmented Generation)",col:"#34d399",
+                   desc:"The backbone of modern AI assistants. Store document chunks as embeddings. When user asks a question, retrieve relevant chunks, feed to LLM. Grounds responses in actual data.",
+                   example:"ChatGPT Enterprise, Perplexity AI, most AI chatbots with knowledge bases."},
+                  {icon:"🛍️",title:"Recommendation Systems",col:"#f7c46a",
+                   desc:"User embedding + item embeddings in the same space. Recommend items closest to the user's embedding. Two-tower architecture enables pre-computed item embeddings for real-time serving.",
+                   example:"YouTube 'Up Next', Spotify 'Discover Weekly', Amazon product recommendations."},
+                  {icon:"🔄",title:"Duplicate & Plagiarism Detection",col:"#f87171",
+                   desc:"Near-identical embeddings = near-duplicate content. Find paraphrases, copies, near-matches at scale without exact string matching.",
+                   example:"Academic plagiarism detection, content deduplication in datasets."},
+                  {icon:"🌐",title:"Cross-Lingual Search",col:"#60a5fa",
+                   desc:"Multilingual models (mBERT, LaBSE) map semantically equivalent text in different languages to nearby vectors. Search in English, find results in Spanish, Hindi, Arabic.",
+                   example:"Google Translate, multilingual enterprise search systems."},
+                  {icon:"⚠️",title:"Anomaly & Fraud Detection",col:"#f87171",
+                   desc:"Embed transactions, user behavior, or log entries. Normal data forms clusters. Points far from any cluster center = anomalies. Catches novel fraud patterns unseen in training.",
+                   example:"Credit card fraud detection, network intrusion detection."},
+                  {icon:"🏷️",title:"Zero-Shot & Few-Shot Classification",col:"#a78bfa",
+                   desc:"With CLIP or SBERT: embed class names as text, embed items, classify by closest class embedding. No labeled data needed for new classes.",
+                   example:"CLIP can classify images into arbitrary categories specified as text."},
+                  {icon:"🗂️",title:"Document Clustering & Topic Modeling",col:"#34d399",
+                   desc:"Embed documents, run k-means or HDBSCAN. Similar documents cluster automatically. UMAP + HDBSCAN is a powerful modern topic modeling pipeline.",
+                   example:"BERTopic library — state-of-art topic modeling using embeddings."},
+                  {icon:"💬",title:"Chatbot Intent Detection",col:"#f7c46a",
+                   desc:"Embed user messages and intent examples. Route to the closest intent handler. Much more robust than keyword rules, handles paraphrases and typos naturally.",
+                   example:"Customer service bots, virtual assistants intent routing."},
+                  {icon:"🖼️",title:"Image Search & Visual Similarity",col:"#60a5fa",
+                   desc:"Embed images with CNN/ViT features. Find visually similar images, enable reverse image search, or with CLIP: search images using text descriptions.",
+                   example:"Pinterest visual search, Google Lens, reverse image search."},
+                ].map(a=>(
+                  <div key={a.title} style={{...S.card,borderLeft:`3px solid ${a.col}`,marginBottom:10}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+                      <span style={{fontSize:22}}>{a.icon}</span>
+                      <span style={{fontWeight:700,fontSize:14,color:a.col}}>{a.title}</span>
+                    </div>
+                    <p style={{...S.p,fontSize:13,marginBottom:6}}>{a.desc}</p>
+                    <div style={{fontFamily:"monospace",fontSize:11,color:C.muted,background:C.surface2,borderRadius:6,padding:"6px 10px"}}>
+                      📍 {a.example}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════════════════
+                TAB 12 — INTERVIEWS
+            ══════════════════════════════════════════════════════════════════════ */}
+            {tab==="iq"&&(
+              <div>
+                <span style={S.label}>Chapter 12</span>
+                <h2 style={S.h2}>All Interview Questions</h2>
+                <p style={S.p}>30 questions covering fundamentals to senior ML engineer level. Click any question to see a thorough answer.</p>
+                <div style={{background:C.surface2,borderRadius:8,padding:12,marginBottom:20,display:"flex",gap:12,flexWrap:"wrap"}}>
+                  {[["⚡ Fundamentals","7 questions"],["🧠 Architecture","7 questions"],["🚀 Applied","6 questions"],["🎯 Deep/Tricky","5 questions"]].map(([c,n])=>(
+                    <div key={c} style={{fontSize:12}}><span style={{fontWeight:700}}>{c}</span> <span style={{color:C.muted}}>{n}</span></div>
+                  ))}
+                </div>
+                {Object.entries(iqData).map(([title,items])=>(
+                  <IQSection key={title} title={title} items={items}/>
+                ))}
+              </div>
+            )}
+
+          </div>
+
+          <div style={{textAlign:"center",padding:"32px 16px",color:C.muted,fontFamily:"monospace",fontSize:11,borderTop:`1px solid ${C.border}`}}>
+            Vector Embeddings Complete Guide &nbsp;·&nbsp; Next: Attention Mechanism → Transformers → BERT/GPT internals
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
+</html>
