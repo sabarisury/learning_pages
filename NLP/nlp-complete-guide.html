@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLP Complete Guide</title>
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for in-browser JSX transpilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; background: #07080f; }
+        * { box-sizing: border-box; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+        
+
+// ─── PALETTE ────────────────────────────────────────────────────────────────
+const C = {
+  bg:"#07080f", s1:"#0e0f1a", s2:"#161728", s3:"#1e2035",
+  border:"#252640", accent:"#6e8efb", gold:"#f0c060",
+  green:"#4ecca3", red:"#f06080", purple:"#b06ef0",
+  text:"#dde1f0", muted:"#7880a0", bright:"#ffffff",
+};
+
+// ─── TABS ────────────────────────────────────────────────────────────────────
+const TABS = [
+  {id:"intro",    label:"1. What is NLP?"},
+  {id:"pipeline", label:"2. NLP Pipeline"},
+  {id:"preprocess",label:"3. Pre-processing"},
+  {id:"bow",      label:"4. Bag of Words"},
+  {id:"tfidf",    label:"5. TF-IDF"},
+  {id:"cosine",   label:"6. Cosine Similarity"},
+  {id:"ngrams",   label:"7. N-Grams"},
+  {id:"pos",      label:"8. POS & NER"},
+  {id:"parsing",  label:"9. Parsing"},
+  {id:"models",   label:"10. ML Models"},
+  {id:"dl",       label:"11. Deep Learning"},
+  {id:"transformers",label:"12. Transformers"},
+  {id:"tasks",    label:"13. NLP Tasks"},
+  {id:"eval",     label:"14. Evaluation"},
+  {id:"iq",       label:"15. Interviews"},
+];
+
+// ─── INTERVIEW DATA ──────────────────────────────────────────────────────────
+const IQ = {
+  "⚡ Fundamentals":[
+    {q:"What is NLP? What makes it hard?",
+     a:"NLP (Natural Language Processing) is the field of AI focused on enabling computers to understand, interpret, and generate human language. It's hard because: (1) Ambiguity — 'I saw her duck' has multiple meanings. (2) Context-dependence — meaning changes with context. (3) World knowledge — understanding 'the trophy didn't fit in the suitcase because it was too big' requires knowing which 'it' refers to. (4) Language evolution — slang, idioms change constantly. (5) Multilinguality — 7,000+ languages."},
+    {q:"What is tokenization? What are the different approaches?",
+     a:"Tokenization splits text into atomic units (tokens). Approaches: (1) Word tokenization — split on whitespace/punctuation. Simple but fails for 'New York', contractions. (2) Sentence tokenization — split into sentences. (3) Subword tokenization (BPE, WordPiece, SentencePiece) — split into frequent subword units. Handles OOV words; 'unbelievably' → ['un','believ','ably']. Modern LLMs use subword. (4) Character tokenization — each character is a token. Handles any word but very long sequences."},
+    {q:"What is stemming vs lemmatization? When to use each?",
+     a:"Stemming: crude heuristic chopping of word endings. 'running' → 'run', 'studies' → 'studi' (not a real word!). Fast but inaccurate. Lemmatization: uses vocabulary and morphological analysis to find the dictionary root form. 'studies' → 'study', 'better' → 'good'. Slower but accurate. Use stemming for IR tasks where speed matters and accuracy is less critical (search engines). Use lemmatization when linguistic correctness matters (text analysis, NLU)."},
+    {q:"What are stop words? Should you always remove them?",
+     a:"Stop words are high-frequency, low-information words (the, a, is, in, of...). Removing them reduces noise and computation. BUT: don't always remove them! For sentiment: 'not good' → removing 'not' makes it 'good' — opposite meaning! For question answering: 'what is the capital of France' — 'what', 'is', 'the' all matter. For machine translation: every word is meaningful. Remove for: bag-of-words IR, topic modeling. Keep for: sentiment, QA, MT, any syntax-sensitive task."},
+    {q:"What is the difference between syntax and semantics?",
+     a:"Syntax is the grammatical structure — how words are arranged. 'Colorless green ideas sleep furiously' is syntactically valid (noun-verb-adverb structure) but semantically nonsensical. Semantics is the meaning. In NLP: syntactic tasks = POS tagging, parsing, dependency analysis. Semantic tasks = NER, semantic role labeling, WSD, semantic similarity. Both matter: syntax provides structure clues; semantics provides meaning."},
+    {q:"What is TF-IDF? Derive the formula.",
+     a:"TF-IDF (Term Frequency-Inverse Document Frequency) scores how important a word is to a document within a corpus. TF(t,d) = count(t in d) / total_words(d). It rewards frequent words in the document. IDF(t) = log(N / df(t)) where N=total docs, df=docs containing term. It penalizes words common across all docs. TF-IDF = TF × IDF. High score means: word appears often in THIS document but rarely across the corpus → likely a discriminative keyword for that document."},
+    {q:"What is Bag of Words? What are its limitations?",
+     a:"BoW represents text as a vector of word counts, ignoring order. Doc: 'cat sat on mat' → {cat:1, sat:1, on:1, mat:1}. Limitations: (1) No word order — 'dog bites man' = 'man bites dog'. (2) No semantics — 'car' and 'automobile' are completely different dimensions. (3) Sparsity — vocabulary of 50,000 words, each doc has maybe 100 → 49,900 zeros. (4) No context — polysemous words get one slot regardless of meaning."},
+  ],
+  "🧠 Text Processing & Features":[
+    {q:"How does BPE (Byte Pair Encoding) tokenization work?",
+     a:"BPE is a data-driven subword tokenization algorithm. Algorithm: (1) Start with character vocabulary. (2) Count all adjacent symbol pairs in corpus. (3) Merge the most frequent pair into a new symbol. (4) Repeat N times. Example: 'low', 'lower', 'lowest' → BPE might learn 'low' as a unit, and 'er', 'est' as suffixes. Result: common words get their own token; rare words are split into subword units. Handles OOV perfectly — any word can be represented as a sequence of learned subwords."},
+    {q:"What are N-grams? How are they used?",
+     a:"N-grams are contiguous sequences of N tokens. Unigrams (N=1): individual words. Bigrams (N=2): ['I love', 'love NLP', 'NLP is']. Trigrams (N=3): ['I love NLP', 'love NLP is']. Used for: (1) Language models — P(word | previous N-1 words). (2) Feature engineering — bigrams capture 'New York', 'not good'. (3) Spelling correction. (4) Text classification. Problem: data sparsity grows exponentially with N. Bigrams already need smoothing (Laplace, Kneser-Ney) for unseen sequences."},
+    {q:"What is word sense disambiguation (WSD)?",
+     a:"WSD is the task of determining which sense of a polysemous word is intended. 'bank' → financial institution or river bank? Approaches: (1) Dictionary-based — use WordNet senses, Lesk algorithm (overlap of word definitions with context). (2) Supervised — train classifier on sense-labeled examples. (3) Semi-supervised — bootstrapping from small labeled set. (4) Neural — contextual embeddings (BERT) effectively encode sense — 'bank' vector differs based on surrounding context without explicit WSD."},
+    {q:"What is Named Entity Recognition (NER)? How does it work?",
+     a:"NER identifies and classifies named entities in text: PER (person), ORG (organization), LOC (location), DATE, MONEY, etc. 'Apple Inc. acquired Beats Electronics for $3B in 2014' → [Apple Inc.=ORG, Beats Electronics=ORG, $3B=MONEY, 2014=DATE]. Approaches: (1) Rule-based — regex, gazetteers (lists of known entities). (2) CRF (Conditional Random Field) — sequence labeling with handcrafted features. (3) BiLSTM-CRF — neural sequence labeling. (4) Fine-tuned BERT — current state of art. Uses BIO/BIOES tagging: B-ORG = beginning of org, I-ORG = inside org."},
+    {q:"Explain CRF and why it's used for sequence labeling.",
+     a:"CRF (Conditional Random Field) is a probabilistic model for labeling sequences. Unlike classifying each token independently (which might produce 'I-ORG' after 'O', which is invalid), CRF models the entire output sequence jointly. It learns transition probabilities between labels (B-ORG → I-ORG is valid; O → I-ORG is not). CRF maximizes P(y|x) = exp(Σ score) / Z(x). For NLP: BiLSTM encodes contextual features → CRF decodes valid label sequence via Viterbi algorithm. BiLSTM-CRF was the dominant NER architecture before transformers."},
+    {q:"What is dependency parsing vs constituency parsing?",
+     a:"Constituency parsing builds a hierarchical phrase structure tree: S → NP + VP → Det + N + V + NP → 'the cat sat on the mat'. Groups words into nested phrases. Used in grammar checking, syntactic analysis. Dependency parsing builds a dependency tree where edges show grammatical relationships between word pairs: cat←sat (nsubj), mat←on (pobj), on←sat (prep). More directly shows 'who does what to whom'. Modern NLP mostly uses dependency parsing (faster, more useful for semantic tasks). Tools: spaCy, Stanford NLP."},
+  ],
+  "🚀 Models & Algorithms":[
+    {q:"How does Naive Bayes work for text classification?",
+     a:"Naive Bayes applies Bayes theorem with a 'naive' independence assumption: P(class|doc) ∝ P(class) × ΠP(word|class). For spam detection: P(spam | 'buy cheap pills') = P(spam) × P('buy'|spam) × P('cheap'|spam) × P('pills'|spam). Train by counting: P(word|class) = count(word in class) / total words in class. Smoothing (add-1) handles unseen words. Despite the naive independence assumption being wrong, it works surprisingly well for text. Fast O(N), good baseline, interpretable."},
+    {q:"What is TF-IDF vectorization used for in practice?",
+     a:"TF-IDF is used for: (1) Information retrieval — rank documents by relevance to a query. (2) Text classification — TF-IDF vectors as features for SVM, logistic regression. (3) Keyword extraction — highest TF-IDF terms in a document are its keywords. (4) Document similarity — cosine similarity of TF-IDF vectors. (5) Recommendation — find similar articles/products. TF-IDF + cosine similarity + SVM was the dominant text classification pipeline before deep learning. Still competitive for small/medium datasets."},
+    {q:"How does an SVM work for text classification?",
+     a:"SVM finds the maximum-margin hyperplane separating classes in high-dimensional feature space (TF-IDF vectors). The kernel trick (RBF, polynomial) maps to even higher dimensions implicitly. For text: linear SVM works very well because TF-IDF vectors are already high-dimensional and linearly separable in many cases. The C parameter controls regularization (trade-off between margin and training error). SVMs were state-of-art for text before deep learning, especially for small labeled datasets where neural nets overfit."},
+    {q:"Explain sequence-to-sequence models and attention.",
+     a:"Seq2seq uses an encoder RNN to encode input into a fixed context vector, then a decoder RNN generates output token by token. Problem: bottleneck — one fixed vector must capture entire input. For long sequences (translation), early tokens are 'forgotten'. Attention (Bahdanau, 2015) solves this: at each decode step, compute attention weights over ALL encoder hidden states. Weighted sum becomes dynamic context vector. The decoder 'looks back' at relevant input parts. 'I love Paris' → translating 'Paris', attend heavily to encoder's 'Paris' hidden state. Foundation for transformers."},
+    {q:"What is the vanishing gradient problem in RNNs? How is it solved?",
+     a:"In RNNs, gradients are multiplied through time during BPTT (backprop through time). If weight matrix W has singular values < 1, gradients shrink exponentially over T timesteps: grad → (W^T × grad) → 0. Long-range dependencies can't be learned. Solutions: (1) LSTM — gated architecture with cell state highway that allows gradients to flow unchanged over long distances. (2) GRU — simpler gated unit. (3) Gradient clipping — cap gradient norm. (4) Transformers — self-attention has direct connections between any two positions — no gradient chain through time."},
+    {q:"What is BLEU score? What are its limitations?",
+     a:"BLEU (Bilingual Evaluation Understudy) measures translation quality as n-gram precision vs reference translations, with brevity penalty. BLEU = BP × exp(Σ log(pn)/N) where pn is n-gram precision. Range 0-1 (often shown 0-100). Limitations: (1) N-gram matching misses synonyms — 'car' vs 'automobile' scores 0. (2) Doesn't measure fluency or coherence. (3) Needs multiple reference translations for reliability. (4) Poor correlation with human judgments at sentence level. Better alternatives: ROUGE (for summarization), BERTScore (semantic similarity), METEOR, ChrF."},
+  ],
+  "🎯 Deep & Applied":[
+    {q:"How does BERT's pre-training work?",
+     a:"BERT uses two pre-training objectives: (1) Masked Language Model (MLM): randomly mask 15% of tokens → predict masked tokens. Unlike GPT (left-to-right), BERT sees full bidirectional context. 80% replace with [MASK], 10% random word, 10% unchanged. (2) Next Sentence Prediction (NSP): given two sentences A and B, predict if B follows A in the original document. Helps learn discourse. Fine-tuning: add task-specific head (classifier, tagger, QA span predictor) and fine-tune all weights on labeled task data. BERT base = 12 transformer layers, 768 hidden, 110M params."},
+    {q:"What is transfer learning in NLP? Why did it change the field?",
+     a:"Transfer learning: pre-train a large model on massive data (GPT on internet text, BERT on Wikipedia+Books), then fine-tune on small labeled task dataset. Before transfer learning: each task needed a large labeled dataset from scratch. After: pre-trained models already 'know' language — grammar, facts, reasoning. Fine-tuning only adapts the final layer(s). Impact: state-of-art on GLUE benchmark went from ~70 (2017) to >90 (2019) after BERT. Now even 100-example fine-tuning outperforms old models trained on 100k examples."},
+    {q:"What is the attention mechanism? How does scaled dot-product attention work?",
+     a:"Attention computes a weighted sum of values based on query-key similarity. Scaled dot-product attention: Attention(Q,K,V) = softmax(QK^T / √d_k) V. Q (queries), K (keys), V (values) are linear projections of the input. QK^T computes similarity between every query-key pair. Divide by √d_k to prevent vanishing gradients in softmax for large d. Softmax converts to probabilities. Multiply by V to get weighted combination. Multi-head attention runs h parallel attention heads, concatenates results: allows attending to different aspects simultaneously."},
+    {q:"Explain precision, recall, and F1 for NLP evaluation.",
+     a:"Precision = TP/(TP+FP) — of all predicted positives, how many are correct. Recall = TP/(TP+FN) — of all actual positives, how many did we find. F1 = 2×(P×R)/(P+R) — harmonic mean. For NER 'Apple acquired Beats': predicted [Apple=ORG, Beats=ORG, $3B=ORG (wrong!)]. For ORG: TP=2, FP=1, FN=0. Precision=2/3, Recall=2/2=1, F1=0.8. Macro-F1 averages F1 per class. Micro-F1 aggregates TP/FP/FN globally. Use micro when class imbalance matters; macro when all classes equally important."},
+    {q:"What is semantic role labeling (SRL)?",
+     a:"SRL identifies who did what to whom where and when. It labels the predicate (verb) and its arguments with thematic roles. 'The chef quickly cooked the pasta in the kitchen.' → predicate: cooked; ARG0 (agent/doer): chef; ARG1 (theme/patient): pasta; ARGM-MNR (manner): quickly; ARGM-LOC (location): in the kitchen. Uses PropBank/FrameNet frame inventories. Applications: information extraction, QA (who did what?), relation extraction. Current models: BERT fine-tuned with BIO labeling on CoNLL-2012 SRL benchmark."},
+    {q:"What is data augmentation in NLP?",
+     a:"Augmentation creates additional training data from existing examples to improve model robustness. Techniques: (1) Synonym replacement — replace N random words with synonyms (WordNet). (2) Random insertion/deletion/swap — add/remove/swap random words. (3) Back-translation — translate to French then back to English → paraphrase. (4) Contextual augmentation — use BERT to predict masked words as replacements. (5) EDA (Easy Data Augmentation) — combination of synonym/insert/delete/swap. (6) Mixup — interpolate between embeddings of two examples. Most effective when labeled data is scarce (<1000 examples)."},
+  ],
+};
+
+// ─── SHARED STYLES ───────────────────────────────────────────────────────────
+const S = {
+  page:   {background:C.bg, color:C.text, minHeight:"100vh", fontFamily:"'Crimson Pro',Georgia,serif"},
+  nav:    {background:"rgba(7,8,15,0.97)", borderBottom:`1px solid ${C.border}`,
+            padding:"7px 10px", display:"flex", gap:3, overflowX:"auto",
+            position:"sticky", top:0, zIndex:100},
+  navBtn: a=>({fontFamily:"'Fira Code',monospace", fontSize:10, padding:"4px 9px", borderRadius:5,
+            border:`1px solid ${a?C.accent:C.border}`, background:a?`${C.accent}20`:"transparent",
+            color:a?C.accent:C.muted, cursor:"pointer", whiteSpace:"nowrap"}),
+  wrap:   {maxWidth:840, margin:"0 auto", padding:"28px 16px"},
+  label:  {fontFamily:"'Fira Code',monospace", fontSize:10, color:C.green, letterSpacing:"0.18em",
+            textTransform:"uppercase", marginBottom:8, display:"block"},
+  h2:     {fontFamily:"'Playfair Display',Georgia,serif", fontSize:26, fontWeight:900, marginBottom:10, lineHeight:1.15},
+  h3:     {fontFamily:"'Playfair Display',Georgia,serif", fontSize:17, fontWeight:700, marginBottom:8},
+  p:      {color:"#aab0c8", fontSize:14, lineHeight:1.85, marginBottom:12},
+  card:   {background:C.s1, border:`1px solid ${C.border}`, borderRadius:12, padding:20, marginBottom:14},
+  note:   {background:`linear-gradient(135deg,${C.accent}10,${C.green}08)`,
+            border:`1px solid ${C.accent}30`, borderRadius:10, padding:"13px 17px", marginBottom:14},
+  code:   {background:C.s2, border:`1px solid ${C.border}`, borderRadius:8, padding:"12px 14px",
+            fontFamily:"'Fira Code',monospace", fontSize:12, color:C.gold, lineHeight:1.7, marginBottom:12},
+  tag:    col=>({fontFamily:"'Fira Code',monospace", fontSize:10, padding:"2px 8px", borderRadius:4,
+            background:`${col}18`, color:col, border:`1px solid ${col}35`, display:"inline-block"}),
+  btn:    (a,col=C.accent)=>({fontFamily:"'Fira Code',monospace", fontSize:11, padding:"5px 11px",
+            borderRadius:6, border:`1px solid ${a?col:C.border}`, background:a?`${col}20`:C.s2,
+            color:a?col:C.muted, cursor:"pointer", transition:"all 0.18s"}),
+  th:     {fontFamily:"'Fira Code',monospace", fontSize:10, color:C.muted, padding:"7px 10px",
+            borderBottom:`1px solid ${C.border}`, textAlign:"left", textTransform:"uppercase", letterSpacing:"0.1em"},
+  td:     {padding:"7px 10px", borderBottom:`1px solid ${C.s2}`, color:"#b8bdd5", fontSize:13},
+  step:   {display:"flex", gap:11, marginBottom:12, alignItems:"flex-start"},
+  snum:   {fontFamily:"'Fira Code',monospace", fontSize:10, color:C.accent, background:`${C.accent}18`,
+            border:`1px solid ${C.accent}35`, borderRadius:5, padding:"3px 7px",
+            minWidth:28, textAlign:"center", flexShrink:0, lineHeight:"18px"},
+};
+
+function Note({title,children}) {
+  return (
+    <div style={S.note}>
+      <div style={{color:C.green, fontWeight:700, fontSize:11, marginBottom:5, textTransform:"uppercase", letterSpacing:"0.06em", fontFamily:"'Fira Code',monospace"}}>💡 {title}</div>
+      <div style={{color:"#b8bdd5", fontStyle:"italic", fontSize:13, lineHeight:1.8}}>{children}</div>
+    </div>
+  );
+}
+function Step({n,title,desc}) {
+  return (
+    <div style={S.step}>
+      <div style={S.snum}>{n}</div>
+      <div><div style={{fontWeight:700,fontSize:13,marginBottom:2,color:C.text}}>{title}</div>
+      <div style={{color:C.muted,fontSize:12,lineHeight:1.65}}>{desc}</div></div>
+    </div>
+  );
+}
+function Tag({col,children}) { return <span style={S.tag(col)}>{children}</span>; }
+
+// ─── TOKENIZER ANIMATION ─────────────────────────────────────────────────────
+function TokenizerAnim() {
+  const [text, setText] = useState("The quick brown fox jumps over the lazy dog!");
+  const [mode, setMode] = useState("word");
+  const modes = {
+    word:  t=>t.match(/\w+|[^\w\s]/g)||[],
+    char:  t=>t.split(""),
+    subword: t=>{
+      const words=t.split(/\s+/);
+      const toks=[];
+      words.forEach(w=>{
+        if(w.length<=4) toks.push(w);
+        else { toks.push(w.slice(0,Math.ceil(w.length/2))+"##"); toks.push("##"+w.slice(Math.ceil(w.length/2))); }
+      });
+      return toks;
+    },
+  };
+  const cols=["#6e8efb","#4ecca3","#f0c060","#f06080","#b06ef0","#60d0f0","#f09050","#90e060"];
+  const tokens = (modes[mode](text)||[]).slice(0,30);
+  return (
+    <div style={S.card}>
+      <h3 style={S.h3}>Tokenization — Interactive Demo</h3>
+      <textarea value={text} onChange={e=>setText(e.target.value)}
+        style={{width:"100%",background:C.s2,border:`1px solid ${C.border}`,borderRadius:8,
+          padding:"10px 12px",color:C.text,fontFamily:"'Fira Code',monospace",fontSize:12,
+          resize:"vertical",minHeight:52,outline:"none",marginBottom:10}}/>
+      <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
+        {[["word","Word"],["subword","Subword (BPE-like)"],["char","Character"]].map(([m,l])=>(
+          <button key={m} style={S.btn(mode===m)} onClick={()=>setMode(m)}>{l}</button>
+        ))}
+      </div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:8}}>
+        {tokens.map((t,i)=>(
+          <span key={i} style={{padding:"3px 9px",borderRadius:5,fontFamily:"'Fira Code',monospace",
+            fontSize:12,background:`${cols[i%cols.length]}18`,color:cols[i%cols.length],
+            border:`1px solid ${cols[i%cols.length]}35`}}>{t}</span>
+        ))}
+      </div>
+      <div style={{fontFamily:"'Fira Code',monospace",fontSize:11,color:C.muted}}>
+        {tokens.length} tokens
+      </div>
+    </div>
+  );
+}
+
+// ─── PREPROCESSING PIPELINE ──────────────────────────────────────────────────
+function PreprocessDemo() {
+  const [text, setText] = useState("Running quickly, She LOVED the beautiful flowers!!!");
+  const steps = [
+    {label:"Original",          fn:t=>t},
+    {label:"Lowercase",         fn:t=>t.toLowerCase()},
+    {label:"Remove Punctuation",fn:t=>t.toLowerCase().replace(/[^\w\s]/g,"")},
+    {label:"Tokenize",          fn:t=>t.toLowerCase().replace(/[^\w\s]/g,"").split(/\s+/).join(" | ")},
+    {label:"Remove Stop Words", fn:t=>{
+      const sw=new Set(["the","she","a","an","is","in","it","of","to","and","or","but","for","with","on","at","by"]);
+      return t.toLowerCase().replace(/[^\w\s]/g,"").split(/\s+/).filter(w=>!sw.has(w)).join(" | ");
+    }},
+    {label:"Stemming",          fn:t=>{
+      const sw=new Set(["the","she","a","an","is","in","it","of","to","and","or","but","for","with","on","at","by"]);
+      const stem=w=>{
+        if(w.endsWith("ing")) return w.slice(0,-3)||w;
+        if(w.endsWith("ed")) return w.slice(0,-2)||w;
+        if(w.endsWith("ly")) return w.slice(0,-2)||w;
+        if(w.endsWith("s")&&w.length>3) return w.slice(0,-1);
+        return w;
+      };
+      return t.toLowerCase().replace(/[^\w\s]/g,"").split(/\s+/).filter(w=>!sw.has(w)).map(stem).join(" | ");
+    }},
+  ];
+  const [active, setActive] = useState(0);
+  const result = steps[active].fn(text);
+  const stepColors=[C.muted,C.accent,C.gold,C.green,C.red,C.purple];
+  return (
+    <div style={S.card}>
+      <h3 style={S.h3}>Preprocessing Pipeline — Step by Step</h3>
+      <textarea value={text} onChange={e=>{setText(e.target.value);setActive(0);}}
+        style={{width:"100%",background:C.s2,border:`1px solid ${C.border}`,borderRadius:8,
+          padding:"9px 12px",color:C.text,fontFamily:"'Fira Code',monospace",fontSize:12,
+          resize:"none",height:44,outline:"none",marginBottom:10}}/>
+      <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:14}}>
+        {steps.map((s,i)=>(
+          <div key={i} onClick={()=>setActive(i)}
+            style={{display:"flex",alignItems:"center",gap:10,padding:"7px 12px",borderRadius:7,
+              cursor:"pointer",background:active===i?`${stepColors[i]}15`:C.s2,
+              border:`1px solid ${active===i?stepColors[i]:C.border}`,transition:"all 0.18s"}}>
+            <div style={{width:20,height:20,borderRadius:"50%",background:active===i?stepColors[i]:`${stepColors[i]}30`,
+              display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,
+              fontFamily:"'Fira Code',monospace",fontSize:9,color:active===i?C.bg:stepColors[i],fontWeight:700}}>
+              {i+1}
+            </div>
+            <span style={{fontSize:12,fontWeight:active===i?700:400,color:active===i?stepColors[i]:C.muted}}>{s.label}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{background:C.s2,borderRadius:8,padding:"12px 14px",fontFamily:"'Fira Code',monospace",fontSize:12,color:C.gold,wordBreak:"break-all",lineHeight:1.7}}>
+        {result}
+      </div>
+    </div>
+  );
+}
+
+// ─── BAG OF WORDS ────────────────────────────────────────────────────────────
+function BowViz() {
+  const docs = [
+    "the cat sat on the mat",
+    "the dog sat on the log",
+    "the cat and the dog played",
+  ];
+  const vocab = [...new Set(docs.join(" ").split(" "))].sort();
+  const vectors = docs.map(d=>{
+    const words=d.split(" ");
+    return vocab.map(v=>words.filter(w=>w===v).length);
+  });
+  const [hovRow, setHovRow] = useState(null);
+  const [hovCol, setHovCol] = useState(null);
+  return (
+    <div style={S.card}>
+      <h3 style={S.h3}>Bag of Words — Interactive Matrix</h3>
+      <p style={{...S.p,fontSize:13,marginBottom:12}}>Each document becomes a count vector over the vocabulary. Hover cells to see what they mean.</p>
+      <div style={{overflowX:"auto"}}>
+        <table style={{borderCollapse:"collapse",fontSize:11,fontFamily:"'Fira Code',monospace",width:"100%"}}>
+          <thead>
+            <tr>
+              <td style={{...S.td,color:C.muted,fontSize:10,padding:"5px 8px"}}>Doc</td>
+              {vocab.map((v,j)=>(
+                <td key={v} onMouseEnter={()=>setHovCol(j)} onMouseLeave={()=>setHovCol(null)}
+                  style={{...S.td,textAlign:"center",padding:"5px 8px",cursor:"default",
+                    color:hovCol===j?C.gold:C.muted,
+                    background:hovCol===j?`${C.gold}10`:"transparent",
+                    borderBottom:`2px solid ${hovCol===j?C.gold:C.border}`,transition:"all 0.15s"}}>
+                  {v}
+                </td>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {vectors.map((row,i)=>(
+              <tr key={i} onMouseEnter={()=>setHovRow(i)} onMouseLeave={()=>setHovRow(null)}>
+                <td style={{...S.td,fontSize:10,color:C.muted,whiteSpace:"nowrap",maxWidth:100,padding:"5px 8px"}}>
+                  doc{i+1}
+                </td>
+                {row.map((v,j)=>{
+                  const isHov = hovRow===i||hovCol===j;
+                  const isBoth = hovRow===i&&hovCol===j;
+                  return (
+                    <td key={j} style={{...S.td,textAlign:"center",padding:"5px 8px",transition:"all 0.15s",
+                      background:isBoth?`${C.green}25`:isHov?`${C.accent}10`:"transparent",
+                      color:isBoth?C.green:v>0?C.text:C.border,
+                      fontWeight:v>0?700:400,fontSize:13}}>
+                      {v}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{marginTop:12,display:"flex",gap:8,flexWrap:"wrap"}}>
+        {docs.map((d,i)=>(
+          <div key={i} style={{background:C.s2,borderRadius:6,padding:"5px 10px",fontSize:11,color:C.muted,fontFamily:"'Fira Code',monospace"}}>
+            doc{i+1}: "{d}"
+          </div>
+        ))}
+      </div>
+      {hovRow!==null&&hovCol!==null&&(
+        <div style={{marginTop:10,background:`${C.green}15`,border:`1px solid ${C.green}40`,
+          borderRadius:7,padding:"8px 12px",fontSize:12,color:C.green,fontFamily:"'Fira Code',monospace"}}>
+          "{vocab[hovCol]}" appears {vectors[hovRow][hovCol]}× in doc{hovRow+1}: "{docs[hovRow]}"
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── TF-IDF ──────────────────────────────────────────────────────────────────
+function TFIDFViz() {
+  const docs = [
+    ["the","cat","sat","on","the","mat"],
+    ["the","dog","chased","the","cat"],
+    ["machine","learning","is","amazing","machine","learning"],
+  ];
+  const N = docs.length;
+  function tf(term, doc) { return doc.filter(w=>w===term).length / doc.length; }
+  function idf(term) {
+    const df = docs.filter(d=>d.includes(term)).length;
+    return df===0?0:Math.log(N/df);
+  }
+  function tfidf(term, doc) { return tf(term,doc)*idf(term); }
+
+  const allTerms = [...new Set(docs.flat())].filter(w=>w!=="the"&&w!=="is"&&w!=="on");
+  const [selDoc, setSelDoc] = useState(0);
+
+  const scores = allTerms.map(t=>({term:t, score:tfidf(t,docs[selDoc]), tf:tf(t,docs[selDoc]), idf:idf(t)}))
+    .sort((a,b)=>b.score-a.score).slice(0,10);
+  const maxScore = Math.max(...scores.map(s=>s.score),0.001);
+
+  return (
+    <div style={S.card}>
+      <h3 style={S.h3}>TF-IDF — Live Calculator</h3>
+      <p style={{...S.p,fontSize:13,marginBottom:10}}>Select a document to see which words it scores highest on. Keywords should bubble to the top.</p>
+      <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
+        {docs.map((d,i)=>(
+          <button key={i} style={S.btn(selDoc===i,C.gold)} onClick={()=>setSelDoc(i)}>
+            doc{i+1}: "{d.join(" ")}"
+          </button>
+        ))}
+      </div>
+      <div style={{marginBottom:8}}>
+        {scores.map((s,i)=>(
+          <div key={s.term} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+            <span style={{fontFamily:"'Fira Code',monospace",fontSize:11,color:C.gold,width:90,textAlign:"right"}}>{s.term}</span>
+            <div style={{flex:1,height:22,borderRadius:4,background:C.s2,overflow:"hidden",position:"relative"}}>
+              <div style={{height:"100%",width:`${(s.score/maxScore)*100}%`,
+                background:`linear-gradient(90deg,${C.accent},${C.gold})`,
+                borderRadius:4,transition:"width 0.6s ease",minWidth:s.score>0?4:0}}/>
+              <span style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",
+                fontFamily:"'Fira Code',monospace",fontSize:10,color:C.muted}}>
+                {s.score.toFixed(4)}
+              </span>
+            </div>
+            <span style={{fontFamily:"'Fira Code',monospace",fontSize:10,color:C.muted,width:120,textAlign:"right"}}>
+              tf:{s.tf.toFixed(2)} × idf:{s.idf.toFixed(2)}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div style={{background:C.s2,borderRadius:8,padding:"10px 14px",fontFamily:"'Fira Code',monospace",fontSize:11,color:C.muted,lineHeight:1.9}}>
+        <span style={{color:C.accent}}>TF(t,d)</span> = count(t in d) / |d|<br/>
+        <span style={{color:C.gold}}>IDF(t)</span> = log(N / df(t))<br/>
+        <span style={{color:C.green}}>TF-IDF</span> = TF × IDF
+      </div>
+    </div>
+  );
+}
+
+// ─── COSINE SIMILARITY ───────────────────────────────────────────────────────
+function CosineViz() {
+  const ref = useRef(null);
+  const [pairIdx, setPairIdx] = useState(0);
+  const pairs = [
+    {a:"cat sat mat",    b:"cat sat log",   col:["#6e8efb","#4ecca3"]},
+    {a:"machine learning", b:"deep learning", col:["#f0c060","#b06ef0"]},
+    {a:"cat sat mat",    b:"machine learning", col:["#f06080","#60d0f0"]},
+    {a:"the king rules", b:"the queen rules", col:["#f0c060","#f06080"]},
+  ];
+  const allWords = [...new Set(pairs.flatMap(p=>[...p.a.split(" "),...p.b.split(" ")]))];
+  function toVec(text) {
+    const words=text.split(" ");
+    return allWords.map(w=>words.filter(x=>x===w).length);
+  }
+  function cosSim(a,b){
+    const dot=a.reduce((s,v,i)=>s+v*b[i],0);
+    const ma=Math.sqrt(a.reduce((s,v)=>s+v*v,0));
+    const mb=Math.sqrt(b.reduce((s,v)=>s+v*v,0));
+    return ma*mb===0?0:dot/(ma*mb);
+  }
+  const p=pairs[pairIdx];
+  const va=toVec(p.a), vb=toVec(p.b);
+  const sim=cosSim(va,vb);
+
+  useEffect(()=>{
+    const canvas=ref.current; if(!canvas) return;
+    function draw(){
+      const W=canvas.offsetWidth, H=240;
+      canvas.width=W*devicePixelRatio; canvas.height=H*devicePixelRatio;
+      const ctx=canvas.getContext("2d"); ctx.scale(devicePixelRatio,devicePixelRatio);
+      ctx.clearRect(0,0,W,H);
+      const ox=W/2, oy=H*0.65, sc=Math.min(W,H)*0.37;
+      ctx.strokeStyle=`${C.border}aa`; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(30,oy); ctx.lineTo(W-30,oy); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ox,15); ctx.lineTo(ox,H-10); ctx.stroke();
+      ctx.fillStyle=`${C.accent}12`;
+      ctx.beginPath(); ctx.arc(ox,oy,sc,0,-Math.PI,true); ctx.fill();
+      const norm=v=>{const m=Math.sqrt(v.reduce((s,x)=>s+x*x,0));return m===0?[0,0]:[v[0]/m,v[1]/m];};
+      const project2d=v=>{
+        const nonzero=v.map((x,i)=>({v:x,i})).filter(x=>x.v>0);
+        if(nonzero.length===0) return [0,0];
+        if(nonzero.length===1) return [Math.cos(nonzero[0].i),Math.sin(nonzero[0].i)];
+        const ang=nonzero.reduce((s,x)=>s+x.v*x.i,0)/nonzero.reduce((s,x)=>s+x.v,0)*0.3;
+        return [Math.cos(ang), Math.sin(ang)];
+      };
+      function drawVec(v,col,label,offset=0){
+        const n=norm(project2d(v));
+        const ex=ox+n[0]*sc+(n[0]>0?offset:-offset);
+        const ey=oy-n[1]*sc-(n[1]>0?offset:-offset);
+        ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(ex,ey);
+        ctx.strokeStyle=col; ctx.lineWidth=2.5; ctx.stroke();
+        const ang=Math.atan2(-(ey-oy),(ex-ox));
+        ctx.beginPath(); ctx.moveTo(ex,ey);
+        ctx.lineTo(ex-11*Math.cos(ang-0.4),ey+11*Math.sin(ang-0.4));
+        ctx.lineTo(ex-11*Math.cos(ang+0.4),ey+11*Math.sin(ang+0.4));
+        ctx.closePath(); ctx.fillStyle=col; ctx.fill();
+        ctx.fillStyle=col; ctx.font="bold 12px 'Fira Code',monospace"; ctx.textAlign="center";
+        ctx.fillText(label,ex+(n[0]>0?20:-20),ey+(n[1]>0?-12:16));
+      }
+      drawVec(va,p.col[0],`"${p.a}"`,0);
+      drawVec(vb,p.col[1],`"${p.b}"`,5);
+      ctx.beginPath(); ctx.arc(ox,oy,50,-0.4,0.2);
+      ctx.strokeStyle=`${C.green}90`; ctx.lineWidth=1.5; ctx.stroke();
+    }
+    draw();
+    const ro=new ResizeObserver(draw); ro.observe(canvas);
+    return()=>ro.disconnect();
+  },[pairIdx]);
+
+  const sc=sim>0.8?C.green:sim>0.4?C.gold:C.red;
+  return (
+    <div style={S.card}>
+      <h3 style={S.h3}>Cosine Similarity — Text Documents</h3>
+      <p style={{...S.p,fontSize:13,marginBottom:10}}>TF-IDF vectors → cosine similarity. Similar topics have small angle between vectors.</p>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
+        {pairs.map((pp,i)=>(
+          <button key={i} style={S.btn(pairIdx===i,C.green)} onClick={()=>setPairIdx(i)}>
+            pair {i+1}
+          </button>
+        ))}
+      </div>
+      <div style={{background:C.s2,borderRadius:8,overflow:"hidden",border:`1px solid ${C.border}`}}>
+        <canvas ref={ref} style={{display:"block",width:"100%"}}/>
+      </div>
+      <div style={{textAlign:"center",fontFamily:"'Fira Code',monospace",fontSize:20,fontWeight:700,margin:"10px 0 4px",color:sc}}>
+        similarity: {sim.toFixed(4)}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:8}}>
+        <div style={{background:C.s2,borderRadius:7,padding:"8px 12px"}}>
+          <div style={{color:p.col[0],fontFamily:"'Fira Code',monospace",fontSize:11,marginBottom:4}}>Doc A: "{p.a}"</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:3}}>
+            {allWords.filter(w=>toVec(p.a)[allWords.indexOf(w)]>0).map(w=>(
+              <span key={w} style={{...S.tag(p.col[0]),fontSize:10}}>{w}</span>
+            ))}
+          </div>
+        </div>
+        <div style={{background:C.s2,borderRadius:7,padding:"8px 12px"}}>
+          <div style={{color:p.col[1],fontFamily:"'Fira Code',monospace",fontSize:11,marginBottom:4}}>Doc B: "{p.b}"</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:3}}>
+            {allWords.filter(w=>toVec(p.b)[allWords.indexOf(w)]>0).map(w=>(
+              <span key={w} style={{...S.tag(p.col[1]),fontSize:10}}>{w}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── NGRAM ────────────────────────────────────────────────────────────────────
+function NGramViz() {
+  const [text, setText] = useState("I love natural language processing");
+  const [n, setN] = useState(2);
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  const ngrams = [];
+  for(let i=0;i<=words.length-n;i++) ngrams.push(words.slice(i,i+n).join(" "));
+  const cols=["#6e8efb","#4ecca3","#f0c060","#f06080","#b06ef0","#60d0f0","#f09050"];
+  return (
+    <div style={S.card}>
+      <h3 style={S.h3}>N-Gram Explorer</h3>
+      <textarea value={text} onChange={e=>setText(e.target.value)}
+        style={{width:"100%",background:C.s2,border:`1px solid ${C.border}`,borderRadius:8,
+          padding:"9px 12px",color:C.text,fontFamily:"'Fira Code',monospace",fontSize:12,
+          resize:"none",height:44,outline:"none",marginBottom:10}}/>
+      <div style={{display:"flex",gap:6,marginBottom:14,alignItems:"center"}}>
+        <span style={{color:C.muted,fontSize:12,fontFamily:"'Fira Code',monospace"}}>N =</span>
+        {[1,2,3,4].map(v=>(
+          <button key={v} style={S.btn(n===v,C.purple)} onClick={()=>setN(v)}>
+            {v} ({["uni","bi","tri","quad"][v-1]}gram)
+          </button>
+        ))}
+      </div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>
+        {ngrams.map((g,i)=>(
+          <span key={i} style={{padding:"4px 10px",borderRadius:6,fontFamily:"'Fira Code',monospace",
+            fontSize:12,background:`${cols[i%cols.length]}18`,color:cols[i%cols.length],
+            border:`1px solid ${cols[i%cols.length]}35`}}>{g}</span>
+        ))}
+      </div>
+      <div style={{fontFamily:"'Fira Code',monospace",fontSize:11,color:C.muted}}>
+        {ngrams.length} {n}-grams from {words.length} tokens
+      </div>
+    </div>
+  );
+}
+
+// ─── POS TAGGER ──────────────────────────────────────────────────────────────
+function POSViz() {
+  const sentences = [
+    {text:"The quick brown fox jumps over the lazy dog",
+     tags:[["The","DT"],["quick","JJ"],["brown","JJ"],["fox","NN"],["jumps","VBZ"],["over","IN"],["the","DT"],["lazy","JJ"],["dog","NN"]]},
+    {text:"Apple acquired Beats Electronics for 3 billion dollars in 2014",
+     tags:[["Apple","NNP"],["acquired","VBD"],["Beats","NNP"],["Electronics","NNP"],["for","IN"],["3","CD"],["billion","CD"],["dollars","NNS"],["in","IN"],["2014","CD"]]},
+    {text:"She quickly ran to the old red house",
+     tags:[["She","PRP"],["quickly","RB"],["ran","VBD"],["to","TO"],["the","DT"],["old","JJ"],["red","JJ"],["house","NN"]]},
+  ];
+  const tagColors={
+    DT:"#7880a0",JJ:"#4ecca3",NN:"#6e8efb",NNP:"#6e8efb",NNS:"#6e8efb",
+    VBZ:"#f0c060",VBD:"#f0c060",VB:"#f0c060",
+    IN:"#b06ef0",RB:"#f09050",PRP:"#f06080",CD:"#60d0f0",TO:"#b06ef0",
+  };
+  const tagNames={
+    DT:"Determiner",JJ:"Adjective",NN:"Noun",NNP:"Proper Noun",NNS:"Plural Noun",
+    VBZ:"Verb (3sg)",VBD:"Verb (past)",VB:"Verb (base)",
+    IN:"Preposition",RB:"Adverb",PRP:"Pronoun",CD:"Number",TO:"To",
+  };
+  const [sel, setSel] = useState(0);
+  const [hov, setHov] = useState(null);
+  return (
+    <div style={S.card}>
+      <h3 style={S.h3}>POS Tagging — Part-of-Speech</h3>
+      <p style={{...S.p,fontSize:13,marginBottom:10}}>Hover a word to see its tag description.</p>
+      <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
+        {sentences.map((_,i)=>(
+          <button key={i} style={S.btn(sel===i,C.accent)} onClick={()=>{setSel(i);setHov(null);}}>sentence {i+1}</button>
+        ))}
+      </div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:12}}>
+        {sentences[sel].tags.map(([w,t],i)=>{
+          const col=tagColors[t]||C.muted;
+          const isHov=hov===i;
+          return (
+            <div key={i} onMouseEnter={()=>setHov(i)} onMouseLeave={()=>setHov(null)}
+              style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,
+                padding:"6px 10px",borderRadius:7,cursor:"default",
+                background:isHov?`${col}25`:`${col}10`,border:`1px solid ${isHov?col:col+"40"}`,
+                transition:"all 0.15s",transform:isHov?"translateY(-2px)":"none"}}>
+              <span style={{fontSize:14,fontWeight:600,color:C.text}}>{w}</span>
+              <span style={{fontFamily:"'Fira Code',monospace",fontSize:9,color:col,fontWeight:700}}>{t}</span>
+            </div>
+          );
+        })}
+      </div>
+      {hov!==null&&(
+        <div style={{background:C.s2,borderRadius:7,padding:"8px 12px",fontFamily:"'Fira Code',monospace",fontSize:11,color:C.gold}}>
+          <span style={{color:tagColors[sentences[sel].tags[hov][1]]||C.muted}}>{sentences[sel].tags[hov][1]}</span>
+          {" → "}{tagNames[sentences[sel].tags[hov][1]]||"Tag"} &nbsp;·&nbsp; word: "{sentences[sel].tags[hov][0]}"
+        </div>
+      )}
+      <div style={{marginTop:12}}>
+        <div style={{fontSize:11,color:C.muted,marginBottom:6,fontFamily:"'Fira Code',monospace"}}>Tag legend:</div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+          {Object.entries(tagColors).map(([t,c])=>(
+            <span key={t} style={{...S.tag(c),fontSize:9}}>{t}={tagNames[t]?.split(" ")[0]}</span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── NER VIZ ─────────────────────────────────────────────────────────────────
+function NERViz() {
+  const examples = [
+    {text:"Apple Inc acquired Beats Electronics for $3 billion in California in 2014",
+     entities:[{text:"Apple Inc",type:"ORG"},{text:"Beats Electronics",type:"ORG"},
+               {text:"$3 billion",type:"MONEY"},{text:"California",type:"LOC"},{text:"2014",type:"DATE"}]},
+    {text:"Elon Musk founded SpaceX in Hawthorne California on May 6 2002",
+     entities:[{text:"Elon Musk",type:"PERSON"},{text:"SpaceX",type:"ORG"},
+               {text:"Hawthorne",type:"LOC"},{text:"California",type:"LOC"},{text:"May 6 2002",type:"DATE"}]},
+  ];
+  const typeColors={ORG:C.accent,PERSON:C.gold,LOC:C.green,DATE:C.purple,MONEY:C.red};
+  const [sel,setSel]=useState(0);
+  const ex=examples[sel];
+
+  function renderText(text,entities){
+    let result=[];
+    let remaining=text;
+    let offset=0;
+    entities.forEach((ent,i)=>{
+      const idx=remaining.indexOf(ent.text);
+      if(idx>0) result.push(<span key={`t${i}`} style={{color:C.muted}}>{remaining.slice(0,idx)}</span>);
+      const col=typeColors[ent.type]||C.accent;
+      result.push(
+        <span key={`e${i}`} style={{background:`${col}20`,color:col,border:`1px solid ${col}50`,
+          borderRadius:4,padding:"1px 5px",margin:"0 1px",fontSize:14}}>
+          {ent.text}
+          <sup style={{fontFamily:"'Fira Code',monospace",fontSize:9,marginLeft:3,color:col}}>{ent.type}</sup>
+        </span>
+      );
+      remaining=remaining.slice(idx+ent.text.length);
+    });
+    if(remaining) result.push(<span key="last" style={{color:C.muted}}>{remaining}</span>);
+    return result;
+  }
+  return (
+    <div style={S.card}>
+      <h3 style={S.h3}>Named Entity Recognition (NER)</h3>
+      <div style={{display:"flex",gap:6,marginBottom:12}}>
+        {examples.map((_,i)=><button key={i} style={S.btn(sel===i,C.gold)} onClick={()=>setSel(i)}>example {i+1}</button>)}
+      </div>
+      <div style={{background:C.s2,borderRadius:8,padding:"14px 16px",fontSize:14,lineHeight:2,marginBottom:10}}>
+        {renderText(ex.text,ex.entities)}
+      </div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+        {Object.entries(typeColors).map(([t,c])=>(
+          <span key={t} style={{...S.tag(c),fontSize:10}}>■ {t}</span>
+        ))}
+      </div>
+      <p style={{...S.p,fontSize:12,marginTop:10,marginBottom:0}}>
+        NER uses <strong>BIO tagging</strong>: B-ORG (beginning of org), I-ORG (inside org), O (outside any entity).
+        "Apple Inc" → B-ORG I-ORG. Modern NER: fine-tuned BERT + CRF decoder.
+      </p>
+    </div>
+  );
+}
+
+// ─── DEPENDENCY PARSE ────────────────────────────────────────────────────────
+function DepParse() {
+  const trees = [
+    {words:["The","cat","sat","on","the","mat"],
+     deps:[{from:1,to:0,lbl:"det"},{from:2,to:1,lbl:"nsubj"},{from:2,to:3,lbl:"prep"},
+           {from:3,to:5,lbl:"pobj"},{from:5,to:4,lbl:"det"}],
+     root:2},
+    {words:["Apple","acquired","Beats"],
+     deps:[{from:1,to:0,lbl:"nsubj"},{from:1,to:2,lbl:"dobj"}],
+     root:1},
+  ];
+  const [sel,setSel]=useState(0);
+  const tree=trees[sel];
+  const W=Math.min(500,tree.words.length*80+40);
+  const H=160;
+  const wx=i=>40+i*(W-40)/(tree.words.length-0.5);
+  const wy=110;
+
+  return (
+    <div style={S.card}>
+      <h3 style={S.h3}>Dependency Parsing</h3>
+      <p style={{...S.p,fontSize:13,marginBottom:10}}>Arrows show grammatical relationships between words. The root verb is the center.</p>
+      <div style={{display:"flex",gap:6,marginBottom:14}}>
+        {trees.map((_,i)=><button key={i} style={S.btn(sel===i,C.purple)} onClick={()=>setSel(i)}>example {i+1}</button>)}
+      </div>
+      <div style={{overflowX:"auto"}}>
+        <svg width={W} height={H} style={{display:"block",margin:"0 auto"}}>
+          {tree.deps.map((d,i)=>{
+            const x1=wx(d.from), x2=wx(d.to);
+            const mid=(x1+x2)/2;
+            const curve=Math.abs(d.from-d.to)*18+20;
+            const col=C.accent;
+            return (
+              <g key={i}>
+                <path d={`M${x1},${wy} C${x1},${wy-curve} ${x2},${wy-curve} ${x2},${wy}`}
+                  stroke={col} strokeWidth={1.5} fill="none" strokeDasharray="none" opacity={0.7}/>
+                <polygon points={`${x2},${wy} ${x2-5},${wy-10} ${x2+5},${wy-10}`}
+                  fill={col} opacity={0.7}/>
+                <text x={mid} y={wy-curve-4} textAnchor="middle" fontSize={10}
+                  fontFamily="'Fira Code',monospace" fill={col} opacity={0.9}>{d.lbl}</text>
+              </g>
+            );
+          })}
+          {tree.words.map((w,i)=>(
+            <g key={i}>
+              <rect x={wx(i)-28} y={wy+8} width={56} height={26} rx={5}
+                fill={i===tree.root?`${C.gold}25`:C.s2}
+                stroke={i===tree.root?C.gold:C.border} strokeWidth={1.5}/>
+              <text x={wx(i)} y={wy+26} textAnchor="middle" fontSize={12}
+                fontFamily="'Fira Code',monospace" fill={i===tree.root?C.gold:C.text}>{w}</text>
+            </g>
+          ))}
+        </svg>
+      </div>
+      <Note title="Dependency vs Constituency Parsing">
+        Dependency parsing shows <em>who does what to whom</em> — direct head-modifier relationships between words. Constituency parsing groups words into nested phrase structures (NP, VP, PP). Modern NLP mostly prefers dependency parsing — it's faster and more directly useful for semantic extraction.
+      </Note>
+    </div>
+  );
+}
+
+// ─── LANGUAGE MODELS ─────────────────────────────────────────────────────────
+function LMViz() {
+  const [phrase, setPhrase] = useState("the cat sat on");
+  const predictions = {
+    "the cat":     [["sat",0.31],["is",0.18],["and",0.14],["was",0.12],["jumped",0.10]],
+    "cat sat":     [["on",0.45],["there",0.18],["down",0.12],["beside",0.09],["quietly",0.07]],
+    "the cat sat": [["on",0.72],["down",0.12],["there",0.06],["quietly",0.05],["comfortably",0.03]],
+    "the cat sat on": [["the",0.68],["a",0.18],["its",0.06],["my",0.04],["that",0.02]],
+    "machine learning": [["is",0.41],["models",0.22],["algorithms",0.14],["can",0.11],["has",0.07]],
+  };
+  const preds = predictions[phrase] || [["...",0.5],["???",0.3],["...",0.15]];
+  return (
+    <div style={S.card}>
+      <h3 style={S.h3}>N-gram Language Model — Next Word Prediction</h3>
+      <p style={{...S.p,fontSize:13,marginBottom:10}}>A language model assigns P(next word | previous words). Select a phrase to see predictions.</p>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
+        {Object.keys(predictions).map(k=>(
+          <button key={k} style={S.btn(phrase===k,C.green)} onClick={()=>setPhrase(k)}>"{k}"</button>
+        ))}
+      </div>
+      <div style={{fontFamily:"'Fira Code',monospace",fontSize:12,color:C.muted,marginBottom:8}}>
+        P(word | "{phrase}") →
+      </div>
+      {preds.map(([w,p],i)=>(
+        <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+          <span style={{fontFamily:"'Fira Code',monospace",fontSize:12,color:C.gold,width:100}}>{w}</span>
+          <div style={{flex:1,height:18,borderRadius:3,background:C.s2,overflow:"hidden"}}>
+            <div style={{height:"100%",width:`${p*100}%`,background:`linear-gradient(90deg,${C.accent},${C.green})`,
+              borderRadius:3,transition:"width 0.5s ease"}}/>
+          </div>
+          <span style={{fontFamily:"'Fira Code',monospace",fontSize:11,color:C.muted,width:42}}>{(p*100).toFixed(0)}%</span>
+        </div>
+      ))}
+      <Note title="Smoothing Problem">
+        Real language has unseen n-grams. 'I ate a purple idea' — P('idea'|'purple') = 0. Zero probability breaks the model! Solution: <em>Laplace smoothing</em> (add 1 to all counts), <em>Kneser-Ney smoothing</em> (use lower-order models for unseen sequences). Kneser-Ney is the gold standard for n-gram LMs.
+      </Note>
+    </div>
+  );
+}
+
+// ─── IQ SECTION ──────────────────────────────────────────────────────────────
+function IQSection({title,items}) {
+  const [open,setOpen]=useState(null);
+  const cols={
+    "⚡ Fundamentals":C.accent,
+    "🧠 Text Processing & Features":C.gold,
+    "🚀 Models & Algorithms":C.green,
+    "🎯 Deep & Applied":C.purple,
+  };
+  const col=cols[title]||C.accent;
+  return (
+    <div style={{marginBottom:20}}>
+      <div style={{fontWeight:900,color:col,marginBottom:10,fontSize:13,display:"flex",alignItems:"center",gap:8,fontFamily:"'Playfair Display',serif"}}>
+        {title}<div style={{flex:1,height:1,background:C.border}}/>
+      </div>
+      {items.map((item,i)=>(
+        <div key={i} style={{background:C.s1,border:`1px solid ${open===i?col:C.border}`,borderRadius:8,marginBottom:5,overflow:"hidden",transition:"border-color 0.2s"}}>
+          <div onClick={()=>setOpen(open===i?null:i)}
+            style={{padding:"11px 14px",cursor:"pointer",display:"flex",gap:9,alignItems:"flex-start",fontWeight:600,fontSize:13}}>
+            <span style={{color:col,fontFamily:"'Fira Code',monospace",fontSize:10,minWidth:24,marginTop:2,fontWeight:700}}>{String(i+1).padStart(2,"0")}</span>
+            <span style={{flex:1}}>{item.q}</span>
+            <span style={{color:C.muted,fontSize:11,transform:open===i?"rotate(180deg)":"none",transition:"transform 0.2s",flexShrink:0}}>▼</span>
+          </div>
+          {open===i&&(
+            <div style={{padding:"0 14px 12px 47px",color:"#9898b8",fontSize:13,lineHeight:1.8,borderTop:`1px solid ${C.s2}`}}>
+              {item.a}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── MAIN ────────────────────────────────────────────────────────────────────
+function App() {
+  const [tab, setTab] = useState("intro");
+
+  return (
+    <div style={S.page}>
+      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Fira+Code:wght@400;500&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
+
+      {/* HERO */}
+      <div style={{background:`radial-gradient(ellipse 90% 60% at 50% 30%,${C.accent}12 0%,transparent 70%)`,
+        padding:"36px 16px 24px",textAlign:"center",borderBottom:`1px solid ${C.border}`}}>
+        <div style={{fontFamily:"'Fira Code',monospace",fontSize:10,color:C.green,
+          background:`${C.green}10`,border:`1px solid ${C.green}30`,
+          padding:"3px 12px",borderRadius:20,display:"inline-block",marginBottom:12,letterSpacing:"0.18em"}}>
+          COMPLETE NLP GUIDE
+        </div>
+        <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:"clamp(2rem,7vw,4rem)",fontWeight:900,marginBottom:10,
+          background:`linear-gradient(135deg,${C.text} 20%,${C.accent} 60%,${C.green})`,
+          WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",lineHeight:1.1}}>
+          Natural Language<br/>Processing
+        </h1>
+        <p style={{...S.p,maxWidth:560,margin:"0 auto",fontStyle:"italic",fontSize:13}}>
+          From text preprocessing to transformers — every concept visualized. TF-IDF, Cosine Similarity, POS, NER, Parsing, Deep Learning & 35 interview questions.
+        </p>
+      </div>
+
+      {/* NAV */}
+      <nav style={S.nav}>
+        {TABS.map(t=><button key={t.id} style={S.navBtn(tab===t.id)} onClick={()=>setTab(t.id)}>{t.label}</button>)}
+      </nav>
+
+      <div style={S.wrap}>
+
+        {/* ════════════════════ 1. INTRO ════════════════════ */}
+        {tab==="intro"&&(
+          <div>
+            <span style={S.label}>Chapter 01</span>
+            <h2 style={S.h2}>What is Natural Language Processing?</h2>
+            <p style={S.p}>NLP is the intersection of computer science, linguistics, and AI — focused on enabling computers to understand, interpret, and generate <em style={{color:C.gold}}>human language</em>.</p>
+
+            <Note title="Why is NLP hard?">
+              Language is ambiguous, context-dependent, ever-changing, and requires world knowledge.
+              "I saw her duck" — did she lower her head, or did I observe her waterfowl?
+              The same sentence can mean completely different things depending on context, tone, and culture.
+            </Note>
+
+            <div style={S.card}>
+              <h3 style={S.h3}>Core Challenges in NLP</h3>
+              {[
+                [C.accent,"Ambiguity","Same text, multiple meanings. Lexical (bank=money/river), Syntactic ('flying planes can be dangerous'), Semantic, Pragmatic."],
+                [C.gold,"Context Dependence","'It' in 'The trophy won't fit in the suitcase because it's too big' — which 'it'? Requires world knowledge."],
+                [C.green,"Language Variation","Formal vs informal, dialects, sarcasm, irony, idioms, evolving slang. 'That's sick!' = good or bad?"],
+                [C.red,"World Knowledge","NLP systems need to know that the sun is a star, not just parse the sentence about it."],
+                [C.purple,"Multilinguality","7,000+ languages, many low-resource with limited training data."],
+              ].map(([col,t,d])=>(
+                <div key={t} style={{display:"flex",gap:10,marginBottom:10,alignItems:"flex-start"}}>
+                  <Tag col={col}>{t}</Tag>
+                  <span style={{color:C.muted,fontSize:13,lineHeight:1.65}}>{d}</span>
+                </div>
+              ))}
+            </div>
+
+            <div style={S.card}>
+              <h3 style={S.h3}>NLP Task Landscape</h3>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:10}}>
+                {[
+                  ["📝","Text Classification","Spam, sentiment, topic"],
+                  ["🏷️","NER","Person, Org, Location"],
+                  ["🌐","Machine Translation","English → Hindi"],
+                  ["❓","Question Answering","SQuAD, reading comprehension"],
+                  ["📰","Summarization","Abstractive, extractive"],
+                  ["💬","Dialogue Systems","Chatbots, task completion"],
+                  ["🔗","Coreference","Which 'it' refers to what?"],
+                  ["🧩","Relation Extraction","X is-a/part-of/founded Y"],
+                  ["📊","Information Extraction","Structured data from text"],
+                  ["🎭","Sentiment Analysis","Positive/negative/neutral"],
+                ].map(([icon,t,d])=>(
+                  <div key={t} style={{background:C.s2,borderRadius:8,padding:"10px 12px",
+                    transition:"all 0.2s",cursor:"default"}}
+                    onMouseEnter={e=>e.currentTarget.style.borderColor=C.accent}
+                    onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}
+                    style={{...{background:C.s2,borderRadius:8,padding:"10px 12px",border:`1px solid ${C.border}`,transition:"all 0.2s"}}}>
+                    <div style={{fontSize:20,marginBottom:4}}>{icon}</div>
+                    <div style={{fontWeight:700,fontSize:13,marginBottom:2}}>{t}</div>
+                    <div style={{color:C.muted,fontSize:11}}>{d}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ════════════════════ 2. PIPELINE ════════════════════ */}
+        {tab==="pipeline"&&(
+          <div>
+            <span style={S.label}>Chapter 02</span>
+            <h2 style={S.h2}>The NLP Pipeline</h2>
+            <p style={S.p}>Most NLP systems follow a sequence of processing steps — from raw text to actionable insights. Understanding the pipeline helps you debug and optimize each stage.</p>
+            <div style={S.card}>
+              <h3 style={S.h3}>Classic NLP Pipeline</h3>
+              {[
+                {n:"01",t:"Raw Text Input",c:C.muted,d:'Raw string: "The quick brown fox jumps over the lazy dog!"'},
+                {n:"02",t:"Sentence Splitting",c:C.accent,d:"Split into individual sentences. 'Mr. Smith went. He was happy.' → 2 sentences (careful with abbreviations!)."},
+                {n:"03",t:"Tokenization",c:C.gold,d:"Split sentences into tokens (words, punctuation, subwords). Handle contractions, hyphenation."},
+                {n:"04",t:"Text Normalization",c:C.green,d:"Lowercase, remove/normalize punctuation, handle numbers, expand contractions ('don't' → 'do not')."},
+                {n:"05",t:"Stop Word Removal",c:C.purple,d:"Remove high-frequency low-information words (the, a, is...). Task-dependent — skip for sentiment!"},
+                {n:"06",t:"Stemming/Lemmatization",c:C.red,d:"Reduce words to base form. 'running' → 'run'. Lemmatization is linguistically correct; stemming is faster."},
+                {n:"07",t:"POS Tagging",c:C.accent,d:"Assign grammatical role to each token: noun, verb, adjective, adverb, preposition..."},
+                {n:"08",t:"NER / Parsing",c:C.gold,d:"Identify named entities (Apple=ORG) and syntactic structure (dependency/constituency tree)."},
+                {n:"09",t:"Feature Extraction",c:C.green,d:"BoW, TF-IDF, word embeddings, or contextual embeddings from BERT/GPT."},
+                {n:"10",t:"Model / Task",c:C.purple,d:"Classification, NER, translation, summarization, QA — the end goal."},
+              ].map((s,i)=>(
+                <div key={i} style={{display:"flex",gap:12,marginBottom:10,alignItems:"flex-start"}}>
+                  <div style={{width:3,borderRadius:2,background:`${s.c}60`,flexShrink:0,alignSelf:"stretch",minHeight:32}}/>
+                  <div style={{fontFamily:"'Fira Code',monospace",fontSize:10,color:s.c,
+                    minWidth:28,marginTop:2,fontWeight:700}}>{s.n}</div>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:13,marginBottom:2,color:s.c}}>{s.t}</div>
+                    <div style={{color:C.muted,fontSize:12,lineHeight:1.65}}>{s.d}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <Note title="Not All Steps Are Always Needed">
+              Modern transformer models (BERT, GPT) often skip most of this pipeline — they use subword tokenization and learn their own representations end-to-end. The classical pipeline is most useful for traditional ML approaches (TF-IDF + SVM) or when you need interpretable, lightweight systems.
+            </Note>
+          </div>
+        )}
+
+        {/* ════════════════════ 3. PREPROCESSING ════════════════════ */}
+        {tab==="preprocess"&&(
+          <div>
+            <span style={S.label}>Chapter 03</span>
+            <h2 style={S.h2}>Text Pre-processing</h2>
+            <p style={S.p}>Before any model sees your text, you need to clean and standardize it. Each step is a deliberate decision with trade-offs.</p>
+            <PreprocessDemo/>
+            <TokenizerAnim/>
+            <div style={S.card}>
+              <h3 style={S.h3}>Stemming vs Lemmatization</h3>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                <div style={{background:C.s2,borderRadius:8,padding:14,border:`1px solid ${C.red}40`}}>
+                  <div style={{color:C.red,fontWeight:700,fontSize:13,marginBottom:8}}>Stemming (Porter)</div>
+                  <div style={{fontFamily:"'Fira Code',monospace",fontSize:11,lineHeight:2,color:C.muted}}>
+                    running → run<br/>studies → studi ❌<br/>better → better<br/>wolves → wolv ❌<br/>
+                    <span style={{color:C.red,fontSize:10}}>Simple rules, fast, may produce non-words</span>
+                  </div>
+                </div>
+                <div style={{background:C.s2,borderRadius:8,padding:14,border:`1px solid ${C.green}40`}}>
+                  <div style={{color:C.green,fontWeight:700,fontSize:13,marginBottom:8}}>Lemmatization (WordNet)</div>
+                  <div style={{fontFamily:"'Fira Code',monospace",fontSize:11,lineHeight:2,color:C.muted}}>
+                    running → run ✓<br/>studies → study ✓<br/>better → good ✓<br/>wolves → wolf ✓<br/>
+                    <span style={{color:C.green,fontSize:10}}>Uses dictionary, slow, always valid words</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style={S.card}>
+              <h3 style={S.h3}>When to Remove Stop Words?</h3>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                <thead><tr><th style={S.th}>Task</th><th style={S.th}>Remove?</th><th style={S.th}>Why</th></tr></thead>
+                <tbody>
+                  {[
+                    ["Search / IR","✓ Yes","High-freq words don't distinguish documents",C.green],
+                    ["Topic Modeling","✓ Yes","Focus on content words",C.green],
+                    ["Sentiment Analysis","✗ No","'not good' → removing 'not' flips meaning!",C.red],
+                    ["Machine Translation","✗ No","Every word matters grammatically",C.red],
+                    ["Question Answering","✗ No","'what is the capital' — structure matters",C.red],
+                    ["BERT / Transformers","✗ No","Model handles this internally",C.red],
+                  ].map(([t,r,w,c])=>(
+                    <tr key={t}><td style={S.td}>{t}</td><td style={{...S.td,color:c,fontFamily:"'Fira Code',monospace",fontSize:11}}>{r}</td><td style={{...S.td,color:C.muted,fontSize:11}}>{w}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ════════════════════ 4. BOW ════════════════════ */}
+        {tab==="bow"&&(
+          <div>
+            <span style={S.label}>Chapter 04</span>
+            <h2 style={S.h2}>Bag of Words (BoW)</h2>
+            <p style={S.p}>The simplest way to represent text numerically: count how many times each word appears. Order doesn't matter — it's literally a "bag" of words.</p>
+            <BowViz/>
+            <div style={S.card}>
+              <h3 style={S.h3}>BoW Limitations</h3>
+              {[
+                [C.red,"No Word Order","'dog bites man' = 'man bites dog' in BoW — same vector, completely different meaning!"],
+                [C.red,"No Semantics","'car' and 'automobile' are different dimensions despite being synonyms."],
+                [C.gold,"Sparsity","Vocabulary of 50,000 words, each document has ~100 → 49,900 zeros. Wastes memory and computation."],
+                [C.gold,"Common Words Dominate","'the', 'is', 'a' get high counts but carry no useful information. Solution: TF-IDF."],
+                [C.purple,"No Context","Bank (financial) = bank (river) in BoW. Polysemy is invisible."],
+              ].map(([c,t,d])=>(
+                <div key={t} style={{display:"flex",gap:10,marginBottom:9,alignItems:"flex-start"}}>
+                  <Tag col={c}>{t}</Tag>
+                  <span style={{color:C.muted,fontSize:13,lineHeight:1.65}}>{d}</span>
+                </div>
+              ))}
+            </div>
+            <LMViz/>
+          </div>
+        )}
+
+        {/* ════════════════════ 5. TF-IDF ════════════════════ */}
+        {tab==="tfidf"&&(
+          <div>
+            <span style={S.label}>Chapter 05</span>
+            <h2 style={S.h2}>TF-IDF</h2>
+            <p style={S.p}>TF-IDF (Term Frequency–Inverse Document Frequency) solves the "common words dominate" problem by rewarding words that are frequent in a document but rare across the corpus.</p>
+
+            <div style={S.card}>
+              <h3 style={S.h3}>The Formula — Derived Step by Step</h3>
+              <Step n="TF" title="Term Frequency — how often does word t appear in document d?"
+                desc="TF(t,d) = count(t in d) / total_words(d). Normalized so longer documents don't automatically score higher."/>
+              <Step n="IDF" title="Inverse Document Frequency — how rare is word t across all documents?"
+                desc="IDF(t) = log(N / df(t)) where N = total documents, df = documents containing t. log dampens the effect. Common words (the, is) → low IDF. Rare, specific words → high IDF."/>
+              <Step n="×" title="TF-IDF = TF × IDF — the combined score"
+                desc="High TF-IDF = word appears often in THIS document but rarely across the corpus. That's a discriminative keyword. Low TF-IDF = either rare in this doc, or common everywhere."/>
+              <div style={S.code}>
+                TF("machine", doc3) = 2/6 = 0.333<br/>
+                IDF("machine") = log(3/1) = 1.099<br/>
+                <span style={{color:C.green}}>TF-IDF = 0.333 × 1.099 = 0.366</span><br/><br/>
+                TF("the", doc1) = 2/6 = 0.333<br/>
+                IDF("the") = log(3/3) = 0<br/>
+                <span style={{color:C.red}}>TF-IDF = 0.333 × 0 = 0 (stop word → zero weight)</span>
+              </div>
+            </div>
+
+            <TFIDFViz/>
+
+            <div style={S.card}>
+              <h3 style={S.h3}>TF-IDF Variants</h3>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                <thead><tr><th style={S.th}>Variant</th><th style={S.th}>Formula</th><th style={S.th}>Use When</th></tr></thead>
+                <tbody>
+                  {[
+                    ["Standard","TF × log(N/df)","General purpose"],
+                    ["Sublinear TF","log(1+TF) × IDF","Prevent high counts from dominating"],
+                    ["Smooth IDF","log(N/df + 1)","Avoid division by zero for new terms"],
+                    ["BM25 (Okapi)","Probabilistic extension","Search engines, outperforms vanilla TF-IDF"],
+                  ].map(([n,f,u])=>(
+                    <tr key={n}><td style={S.td}><strong style={{fontFamily:"'Fira Code',monospace",fontSize:11}}>{n}</strong></td>
+                    <td style={{...S.td,fontFamily:"'Fira Code',monospace",fontSize:11,color:C.gold}}>{f}</td>
+                    <td style={{...S.td,color:C.muted,fontSize:12}}>{u}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <Note title="TF-IDF vs Embeddings">
+              TF-IDF is still widely used! It's fast, interpretable, no training needed, and works well on small datasets. Embeddings are better for semantic similarity (car ≈ automobile) but TF-IDF is better when exact keyword matching matters (legal documents, medical records with specific terminology).
+            </Note>
+          </div>
+        )}
+
+        {/* ════════════════════ 6. COSINE ════════════════════ */}
+        {tab==="cosine"&&(
+          <div>
+            <span style={S.label}>Chapter 06</span>
+            <h2 style={S.h2}>Cosine Similarity for NLP</h2>
+            <p style={S.p}>Once you have TF-IDF vectors (or any document vectors), cosine similarity measures how similar two documents are by the angle between their vectors — ignoring document length.</p>
+
+            <div style={S.card}>
+              <h3 style={S.h3}>Why Cosine, Not Euclidean Distance?</h3>
+              <p style={{...S.p,fontSize:13}}>A 100-word document and a 1000-word document about the same topic should be considered similar. But their TF-IDF vectors will have different magnitudes. Euclidean distance would call them far apart. Cosine similarity only cares about the <em style={{color:C.gold}}>direction</em> (topic), not the <em style={{color:C.red}}>length</em> (document size).</p>
+              <div style={S.code}>
+                cosine_sim(A, B) = (A · B) / (|A| × |B|)<br/><br/>
+                A · B = Σ aᵢ × bᵢ &nbsp;&nbsp;(dot product)<br/>
+                |A| = √(Σ aᵢ²) &nbsp;&nbsp;(Euclidean norm)<br/><br/>
+                <span style={{color:C.green}}>Range: -1 to 1 (for TF-IDF with non-negative values: 0 to 1)</span>
+              </div>
+            </div>
+
+            <CosineViz/>
+
+            <div style={S.card}>
+              <h3 style={S.h3}>Document Similarity Thresholds</h3>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                <thead><tr><th style={S.th}>Cosine Score</th><th style={S.th}>Interpretation</th><th style={S.th}>Typical Use</th></tr></thead>
+                <tbody>
+                  {[
+                    ["0.95 – 1.00","Near-identical (paraphrase or duplicate)","Plagiarism detection",C.green],
+                    ["0.80 – 0.95","Very similar topic","Close document retrieval",C.green],
+                    ["0.60 – 0.80","Related, overlapping topic","Broad retrieval",C.gold],
+                    ["0.30 – 0.60","Loosely related","Weak association",C.gold],
+                    ["0.00 – 0.30","Different topics","No meaningful overlap",C.red],
+                  ].map(([r,i,u,c])=>(
+                    <tr key={r}><td style={{...S.td,fontFamily:"'Fira Code',monospace",fontSize:11,color:c}}>{r}</td>
+                    <td style={S.td}>{i}</td><td style={{...S.td,color:C.muted,fontSize:12}}>{u}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={S.card}>
+              <h3 style={S.h3}>Full Pipeline: Text → Similarity Score</h3>
+              <Step n="01" title="Preprocess both documents" desc="Lowercase, remove punctuation, tokenize, remove stop words, stem/lemmatize."/>
+              <Step n="02" title="Build vocabulary from corpus" desc="Collect all unique terms across all documents. This is your feature space dimension."/>
+              <Step n="03" title="Compute TF-IDF vectors" desc="Each document becomes a sparse vector of TF-IDF weights over the vocabulary."/>
+              <Step n="04" title="Compute cosine similarity" desc="cosine_sim(doc_A, doc_B) = dot(tfidf_A, tfidf_B) / (norm(A) × norm(B))"/>
+              <Step n="05" title="Apply threshold or rank" desc="For search: rank all documents by similarity to query. For dedup: flag pairs above threshold."/>
+            </div>
+          </div>
+        )}
+
+        {/* ════════════════════ 7. N-GRAMS ════════════════════ */}
+        {tab==="ngrams"&&(
+          <div>
+            <span style={S.label}>Chapter 07</span>
+            <h2 style={S.h2}>N-Grams & Language Models</h2>
+            <p style={S.p}>N-grams are contiguous sequences of N tokens. They capture local word order that Bag of Words misses — and they form the basis of classical language models.</p>
+            <NGramViz/>
+            <div style={S.card}>
+              <h3 style={S.h3}>N-gram Language Model</h3>
+              <p style={{...S.p,fontSize:13}}>A language model assigns probability to text. The n-gram LM assumption: <em style={{color:C.gold}}>the probability of a word depends only on the previous N-1 words</em> (Markov assumption).</p>
+              <div style={S.code}>
+                P(w₁,w₂,...,wₙ) = ΠP(wᵢ | wᵢ₋₁, wᵢ₋₂, ..., wᵢ₋ₙ₊₁)<br/><br/>
+                Bigram: P("sat"|"cat") = count("cat sat") / count("cat")<br/>
+                Trigram: P("sat"|"cat","the") = count("the cat sat") / count("the cat")
+              </div>
+              <Note title="The Sparsity Problem">
+                Even with a large corpus, most n-gram sequences will never appear. P("purple dinosaur flew") = 0/anything = 0. Zero probability breaks the model. Solutions: Laplace smoothing (add 1), Good-Turing, Kneser-Ney (gold standard — uses lower-order n-grams for unseen sequences).
+              </Note>
+            </div>
+            <div style={S.card}>
+              <h3 style={S.h3}>N-grams in Practice</h3>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                <thead><tr><th style={S.th}>N</th><th style={S.th}>Name</th><th style={S.th}>Captures</th><th style={S.th}>Example</th></tr></thead>
+                <tbody>
+                  {[
+                    ["1","Unigram","Individual words","'cat', 'sat', 'mat'"],
+                    ["2","Bigram","Word pairs, local context","'cat sat', 'not good'"],
+                    ["3","Trigram","Phrases, idioms","'New York City'"],
+                    ["4+","Higher-order","Long phrases","Diminishing returns + sparsity"],
+                  ].map(([n,name,c,e])=>(
+                    <tr key={n}><td style={{...S.td,fontFamily:"'Fira Code',monospace",color:C.gold,fontSize:12}}>{n}</td>
+                    <td style={{...S.td,fontWeight:600,fontSize:12}}>{name}</td>
+                    <td style={{...S.td,color:C.muted,fontSize:11}}>{c}</td>
+                    <td style={{...S.td,fontFamily:"'Fira Code',monospace",fontSize:10,color:C.accent}}>{e}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ════════════════════ 8. POS & NER ════════════════════ */}
+        {tab==="pos"&&(
+          <div>
+            <span style={S.label}>Chapter 08</span>
+            <h2 style={S.h2}>POS Tagging & Named Entity Recognition</h2>
+            <p style={S.p}>Part-of-speech tagging assigns grammatical roles to each token. NER goes further — identifying real-world entities like people, organizations, dates, and locations.</p>
+            <POSViz/>
+            <NERViz/>
+            <div style={S.card}>
+              <h3 style={S.h3}>BIO Tagging Scheme for NER</h3>
+              <p style={{...S.p,fontSize:13}}>NER is framed as a sequence labeling problem using BIO (or BIOES) tagging:</p>
+              <div style={S.code}>
+                "Apple Inc acquired Beats Electronics"<br/><br/>
+                Apple     → B-ORG  (Beginning of ORG entity)<br/>
+                Inc       → I-ORG  (Inside ORG entity)<br/>
+                acquired  → O      (Outside any entity)<br/>
+                Beats     → B-ORG  (New ORG entity)<br/>
+                Electronics → I-ORG
+              </div>
+              <Note title="Why BIO and not just entity type?">
+                Without BIO, we couldn't distinguish "Apple Inc" (one entity) from "Apple" followed by "Inc" (two entities). B marks the start of a new entity even if same type. BIOES adds E (end) and S (single-word entity) for even finer control.
+              </Note>
+            </div>
+          </div>
+        )}
+
+        {/* ════════════════════ 9. PARSING ════════════════════ */}
+        {tab==="parsing"&&(
+          <div>
+            <span style={S.label}>Chapter 09</span>
+            <h2 style={S.h2}>Parsing — Syntactic Structure</h2>
+            <p style={S.p}>Parsing reveals the grammatical structure of sentences. Two main approaches: dependency parsing (word-to-word relations) and constituency parsing (nested phrase structure).</p>
+            <DepParse/>
+            <div style={S.card}>
+              <h3 style={S.h3}>Dependency Relations</h3>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                <thead><tr><th style={S.th}>Relation</th><th style={S.th}>Meaning</th><th style={S.th}>Example</th></tr></thead>
+                <tbody>
+                  {[
+                    ["nsubj","Nominal subject","cat ← sat (cat is subject of sat)"],
+                    ["dobj","Direct object","Beats ← acquired (Beats is object of acquired)"],
+                    ["det","Determiner","The ← cat ('The' modifies 'cat')"],
+                    ["amod","Adjectival modifier","quick ← fox ('quick' describes 'fox')"],
+                    ["prep","Prepositional modifier","on ← sat ('on the mat' modifies 'sat')"],
+                    ["pobj","Object of preposition","mat ← on ('mat' is object of 'on')"],
+                    ["advmod","Adverbial modifier","quickly ← ran"],
+                  ].map(([r,m,e])=>(
+                    <tr key={r}><td style={{...S.td,fontFamily:"'Fira Code',monospace",fontSize:11,color:C.accent}}>{r}</td>
+                    <td style={S.td}>{m}</td><td style={{...S.td,fontFamily:"'Fira Code',monospace",fontSize:11,color:C.muted}}>{e}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={S.card}>
+              <h3 style={S.h3}>Constituency vs Dependency Parsing</h3>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                <div style={{background:C.s2,borderRadius:8,padding:12}}>
+                  <div style={{color:C.accent,fontWeight:700,fontSize:12,marginBottom:6}}>Constituency</div>
+                  <div style={{fontFamily:"'Fira Code',monospace",fontSize:10,color:C.muted,lineHeight:1.9}}>
+                    S → NP VP<br/>NP → DT JJ NN<br/>VP → VBZ PP<br/>PP → IN NP<br/>
+                    <span style={{color:C.muted,fontSize:9}}>Nested phrase groups</span>
+                  </div>
+                </div>
+                <div style={{background:C.s2,borderRadius:8,padding:12}}>
+                  <div style={{color:C.gold,fontWeight:700,fontSize:12,marginBottom:6}}>Dependency</div>
+                  <div style={{fontFamily:"'Fira Code',monospace",fontSize:10,color:C.muted,lineHeight:1.9}}>
+                    sat → root<br/>cat → nsubj(sat)<br/>on → prep(sat)<br/>mat → pobj(on)<br/>
+                    <span style={{color:C.muted,fontSize:9}}>Word-to-word relations</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ════════════════════ 10. ML MODELS ════════════════════ */}
+        {tab==="models"&&(
+          <div>
+            <span style={S.label}>Chapter 10</span>
+            <h2 style={S.h2}>Classical ML for NLP</h2>
+            <p style={S.p}>Before deep learning, NLP relied on handcrafted features + classical ML. These still work well for small datasets and resource-constrained settings.</p>
+
+            {[
+              {name:"Naive Bayes", col:C.accent,
+               desc:"Applies Bayes theorem with independence assumption. P(class|doc) ∝ P(class) × ΠP(word|class). Train by counting word frequencies per class.",
+               pros:["Very fast — O(N) training and inference","Works well with small data","Interpretable"],
+               cons:["Independence assumption is always wrong","Ignores word order","Needs smoothing for unseen words"],
+               use:"Spam filtering, basic sentiment, quick baseline"},
+              {name:"SVM (Support Vector Machine)", col:C.gold,
+               desc:"Finds the maximum-margin hyperplane separating classes. With TF-IDF features, linear SVM works very well. Kernel trick maps to higher dimensions implicitly.",
+               pros:["Excellent with high-dim sparse vectors","Good generalization with small data","Well-studied, reliable"],
+               cons:["Slow to train on large datasets O(n²-n³)","Doesn't output probabilities (needs Platt scaling)","Feature engineering required"],
+               use:"Text classification, spam, sentiment. Gold standard pre-2015"},
+              {name:"Logistic Regression", col:C.green,
+               desc:"Linear model with sigmoid output. P(class=1|x) = σ(w·x+b). Regularization (L1/L2) handles high-dim features. L1 induces sparsity — automatic feature selection.",
+               pros:["Fast, scalable, interpretable","Outputs calibrated probabilities","L1 regularization selects features"],
+               cons:["Linear decision boundary","Needs good features (TF-IDF, n-grams)","Can overfit without regularization"],
+               use:"Multi-class text classification, fast baseline"},
+              {name:"CRF (Conditional Random Field)", col:C.purple,
+               desc:"Sequence labeling model that captures dependencies between consecutive labels. Used for NER, POS tagging. P(y|x) ∝ exp(Σ feature_functions). Viterbi decoding for optimal label sequence.",
+               pros:["Models label dependencies (BIO constraints)","Handles variable-length sequences","No label independence assumption"],
+               cons:["Slow inference for long sequences","Requires handcrafted features","Superseded by neural models"],
+               use:"NER, POS tagging, chunking — classic sequence labeling"},
+            ].map(m=>(
+              <div key={m.name} style={{...S.card,borderLeft:`3px solid ${m.col}`}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                  <span style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:16,color:m.col}}>{m.name}</span>
+                </div>
+                <p style={{...S.p,fontSize:13,marginBottom:10}}>{m.desc}</p>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:8}}>
+                  <div><div style={{color:C.green,fontSize:11,fontWeight:700,marginBottom:3}}>✓ Strengths</div>
+                    {m.pros.map(p=><div key={p} style={{color:C.muted,fontSize:11,marginBottom:2}}>• {p}</div>)}
+                  </div>
+                  <div><div style={{color:C.red,fontSize:11,fontWeight:700,marginBottom:3}}>✗ Weaknesses</div>
+                    {m.cons.map(c=><div key={c} style={{color:C.muted,fontSize:11,marginBottom:2}}>• {c}</div>)}
+                  </div>
+                </div>
+                <Tag col={m.col}>Best for: {m.use}</Tag>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ════════════════════ 11. DEEP LEARNING ════════════════════ */}
+        {tab==="dl"&&(
+          <div>
+            <span style={S.label}>Chapter 11</span>
+            <h2 style={S.h2}>Deep Learning for NLP</h2>
+            <p style={S.p}>Neural networks learn representations end-to-end without manual feature engineering. The progression: word embeddings → RNNs → LSTMs → Attention → Transformers.</p>
+
+            {[
+              {name:"Word Embeddings (Word2Vec, GloVe)", year:"2013-14", col:C.accent,
+               desc:"Learned dense vector representations where similar words cluster together. king − man + woman ≈ queen. Foundation for everything that follows."},
+              {name:"RNN (Recurrent Neural Network)", year:"2014", col:C.gold,
+               desc:"Processes sequences token by token, maintaining hidden state. hₜ = tanh(Wₕhₜ₋₁ + Wₓxₜ). Problem: vanishing gradients — can't learn long-range dependencies. Words from early in a 100-word sentence are effectively forgotten.",
+               arch:"Input → Embedding → RNN cells → Output"},
+              {name:"LSTM (Long Short-Term Memory)", year:"2015+", col:C.green,
+               desc:"Solves vanishing gradient with gated architecture. Cell state = memory highway. 3 gates: Forget (what to erase), Input (what to write), Output (what to read). Long-range dependencies can flow through unchanged.",
+               arch:"Forget gate: fₜ=σ(Wf[hₜ₋₁,xₜ]) | Cell: cₜ=fₜ⊙cₜ₋₁+iₜ⊙c̃ₜ"},
+              {name:"Bi-LSTM", year:"2015+", col:C.purple,
+               desc:"Run two LSTMs — one left-to-right, one right-to-left. Concatenate hidden states. 'The bank by the river' — right-to-left LSTM sees 'river' before 'bank', helping disambiguate. Used in BiLSTM-CRF for NER."},
+              {name:"Seq2Seq + Attention", year:"2015", col:C.red,
+               desc:"Encoder LSTM compresses input to context vector. Decoder LSTM generates output. Attention: at each decode step, compute weights over ALL encoder states. Fixes bottleneck. Foundation for transformers."},
+            ].map((m,i)=>(
+              <div key={m.name} style={{...S.card,borderLeft:`3px solid ${m.col}`}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6,flexWrap:"wrap"}}>
+                  <span style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:15,color:m.col}}>{m.name}</span>
+                  <Tag col={m.col}>{m.year}</Tag>
+                </div>
+                <p style={{...S.p,fontSize:13,marginBottom:m.arch?8:0}}>{m.desc}</p>
+                {m.arch&&<div style={S.code}>{m.arch}</div>}
+              </div>
+            ))}
+
+            <div style={S.card}>
+              <h3 style={S.h3}>Vanishing Gradient — The Core RNN Problem</h3>
+              <div style={S.code}>
+                Gradient at step t = ∂L/∂h₁ = (∂L/∂hₙ) × ΠW<br/><br/>
+                If |W| &lt; 1: gradient → 0 exponentially (vanishing)<br/>
+                If |W| &gt; 1: gradient → ∞ exponentially (exploding)<br/><br/>
+                <span style={{color:C.green}}>LSTM fix: cell state highway with additive updates</span><br/>
+                <span style={{color:C.gold}}>Transformer fix: direct connections via attention (no time chain)</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ════════════════════ 12. TRANSFORMERS ════════════════════ */}
+        {tab==="transformers"&&(
+          <div>
+            <span style={S.label}>Chapter 12</span>
+            <h2 style={S.h2}>Transformers & Modern NLP</h2>
+            <p style={S.p}>"Attention is All You Need" (2017) replaced RNNs entirely. Transformers process all tokens in parallel and directly connect any two positions via attention.</p>
+
+            <div style={S.card}>
+              <h3 style={S.h3}>Self-Attention — The Core Mechanism</h3>
+              <p style={{...S.p,fontSize:13}}>Each token attends to all other tokens simultaneously. The attention score determines how much each word "looks at" each other word.</p>
+              <div style={S.code}>
+                Q = XW_Q &nbsp;&nbsp;&nbsp;(Queries — what am I looking for?)<br/>
+                K = XW_K &nbsp;&nbsp;&nbsp;(Keys — what do I contain?)<br/>
+                V = XW_V &nbsp;&nbsp;&nbsp;(Values — what do I return?)<br/><br/>
+                Attention(Q,K,V) = softmax(QKᵀ / √d_k) × V<br/><br/>
+                <span style={{color:C.green}}>√d_k scaling prevents softmax saturation in high dims</span>
+              </div>
+              <Note title="Attention in Practice">
+                In "The bank by the river was flooded", "bank" attends strongly to "river" and "flooded" → financial bank is unlikely. "bank" in "I went to the bank to deposit" attends to "deposit" → financial meaning. Attention is how contextual embeddings work.
+              </Note>
+            </div>
+
+            <div style={S.card}>
+              <h3 style={S.h3}>Transformer Architecture Components</h3>
+              {[
+                ["Token Embeddings","Input tokens → dense vectors","Same as Word2Vec embedding lookup"],
+                ["Positional Embeddings","Add position info to token embeddings","Transformers are order-agnostic without this"],
+                ["Multi-Head Attention","Run H attention heads in parallel","Each head learns different types of relationships"],
+                ["Feed-Forward Network","Two linear layers with ReLU","Applied to each position independently"],
+                ["Layer Normalization","Normalize activations at each layer","Stabilizes training, prevents gradient issues"],
+                ["Residual Connections","Add input to output of each sublayer","Enables gradients to flow through deep networks"],
+              ].map(([n,d,note])=>(
+                <div key={n} style={{display:"flex",gap:10,marginBottom:9,alignItems:"flex-start"}}>
+                  <div style={{minWidth:3,background:`${C.accent}50`,borderRadius:2,alignSelf:"stretch"}}/>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:13,color:C.accent,marginBottom:1}}>{n}</div>
+                    <div style={{color:C.text,fontSize:12,marginBottom:1}}>{d}</div>
+                    <div style={{color:C.muted,fontSize:11,fontStyle:"italic"}}>{note}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={S.card}>
+              <h3 style={S.h3}>BERT vs GPT vs T5 — The Big Three Architectures</h3>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                <thead><tr><th style={S.th}>Model</th><th style={S.th}>Architecture</th><th style={S.th}>Pre-training</th><th style={S.th}>Best For</th></tr></thead>
+                <tbody>
+                  {[
+                    ["BERT","Encoder only","MLM + NSP (bidirectional)","Understanding, classification, NER, QA",C.accent],
+                    ["GPT","Decoder only","Causal LM (left-to-right)","Text generation, completion, dialogue",C.gold],
+                    ["T5","Encoder-Decoder","Text-to-text (everything as generation)","Translation, summarization, multi-task",C.green],
+                    ["RoBERTa","Encoder only","MLM only (no NSP, more data)","Better BERT — all classification tasks",C.purple],
+                    ["BART","Encoder-Decoder","Denoising autoencoder","Summarization, translation, generation",C.red],
+                  ].map(([n,a,p,b,c])=>(
+                    <tr key={n}><td style={{...S.td,fontWeight:700,color:c}}>{n}</td>
+                    <td style={{...S.td,fontFamily:"'Fira Code',monospace",fontSize:10,color:C.muted}}>{a}</td>
+                    <td style={{...S.td,color:C.muted,fontSize:11}}>{p}</td>
+                    <td style={{...S.td,color:C.muted,fontSize:11}}>{b}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ════════════════════ 13. TASKS ════════════════════ */}
+        {tab==="tasks"&&(
+          <div>
+            <span style={S.label}>Chapter 13</span>
+            <h2 style={S.h2}>NLP Tasks — Deep Dive</h2>
+            <p style={S.p}>Each NLP task has its own formulation, metrics, and best approaches. Here's the complete landscape with key details.</p>
+            {[
+              {icon:"🎭",t:"Sentiment Analysis",col:C.accent,
+               desc:"Classify text as positive/negative/neutral (or fine-grained: 1-5 stars). Aspect-based SA: 'The food was great but service was terrible' → food=positive, service=negative.",
+               approach:"BERT fine-tuned on SST-2, IMDb. Feature: [CLS] token → linear classifier.",
+               datasets:"SST-2, IMDb, Yelp, Amazon reviews"},
+              {icon:"❓",t:"Question Answering",col:C.gold,
+               desc:"Extractive QA: find answer span in a passage. 'What river flows through Paris?' → 'the Seine'. Abstractive QA: generate an answer. Open-domain: retrieve relevant passage then answer.",
+               approach:"BERT: predict start and end token of answer span. SQuAD 2.0 includes unanswerable questions.",
+               datasets:"SQuAD 1.1/2.0, TriviaQA, Natural Questions"},
+              {icon:"📰",t:"Text Summarization",col:C.green,
+               desc:"Extractive: select important sentences from the document. Abstractive: generate a new summary. ROUGE metric measures n-gram overlap with reference summaries.",
+               approach:"BART/T5 for abstractive. BERT + extractive selector for extractive. Pointer networks handle rare words.",
+               datasets:"CNN/DailyMail, XSum, Reddit TIFU"},
+              {icon:"🌐",t:"Machine Translation",col:C.purple,
+               desc:"Seq2Seq with attention is the foundation. Transformer (Vaswani et al. 2017) defined modern MT. Challenges: rare words, morphology, word order differences, cultural idioms.",
+               approach:"mBART, mT5 for multilingual. Language-specific fine-tuning on parallel corpora.",
+               datasets:"WMT, OPUS, FLORES-200"},
+              {icon:"💬",t:"Natural Language Inference (NLI)",col:C.red,
+               desc:"Given premise and hypothesis, predict: Entailment (H follows from P), Contradiction (H contradicts P), or Neutral. Tests deep language understanding.",
+               approach:"BERT with [CLS] premise [SEP] hypothesis → 3-class classifier.",
+               datasets:"SNLI, MultiNLI, XNLI (multilingual)"},
+              {icon:"🔗",t:"Coreference Resolution",col:C.accent,
+               desc:"Determine which mentions refer to the same entity. 'Barack Obama said he would...'. 'he' = 'Barack Obama'. Hard because: 'The trophy didn't fit in the suitcase because it was too big' — what does 'it' refer to?",
+               approach:"Span-based models with mention detection + coreference scoring. E2E-Coref, SpanBERT.",
+               datasets:"OntoNotes 5.0, CoNLL-2012"},
+            ].map(a=>(
+              <div key={a.t} style={{...S.card,borderLeft:`3px solid ${a.col}`}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                  <span style={{fontSize:20}}>{a.icon}</span>
+                  <span style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:15,color:a.col}}>{a.t}</span>
+                </div>
+                <p style={{...S.p,fontSize:13,marginBottom:7}}>{a.desc}</p>
+                <div style={{fontFamily:"'Fira Code',monospace",fontSize:11,color:C.muted,marginBottom:4}}>
+                  <span style={{color:a.col}}>Approach: </span>{a.approach}
+                </div>
+                <div style={{fontFamily:"'Fira Code',monospace",fontSize:10,color:C.muted}}>
+                  <span style={{color:C.gold}}>Datasets: </span>{a.datasets}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ════════════════════ 14. EVALUATION ════════════════════ */}
+        {tab==="eval"&&(
+          <div>
+            <span style={S.label}>Chapter 14</span>
+            <h2 style={S.h2}>Evaluation Metrics</h2>
+            <p style={S.p}>Different NLP tasks need different evaluation metrics. Choosing the wrong metric can give a false picture of model quality.</p>
+
+            <div style={S.card}>
+              <h3 style={S.h3}>Classification Metrics</h3>
+              <div style={S.code}>
+                Precision = TP / (TP + FP) &nbsp;&nbsp;→ "Of all predicted positives, how many were right?"<br/>
+                Recall    = TP / (TP + FN) &nbsp;&nbsp;→ "Of all actual positives, how many did we find?"<br/>
+                F1        = 2×P×R / (P+R) &nbsp;&nbsp;→ harmonic mean (penalizes imbalance between P and R)<br/><br/>
+                Macro-F1: average F1 per class (treats all classes equally)<br/>
+                Micro-F1: aggregate TP/FP/FN globally (favors majority class)<br/>
+                Weighted-F1: weighted by class support (good for imbalanced datasets)
+              </div>
+            </div>
+
+            <div style={S.card}>
+              <h3 style={S.h3}>Generation Metrics</h3>
+              {[
+                {name:"BLEU",col:C.accent,
+                 desc:"N-gram precision vs reference translations + brevity penalty. BLEU-4 uses 1-4 gram precision. Standard for MT. Limitation: misses synonyms (car≠automobile), no semantic similarity."},
+                {name:"ROUGE",col:C.gold,
+                 desc:"Recall-oriented n-gram overlap with reference. ROUGE-1 (unigrams), ROUGE-2 (bigrams), ROUGE-L (longest common subsequence). Standard for summarization."},
+                {name:"METEOR",col:C.green,
+                 desc:"Extends BLEU with synonym matching, stemming, word order. Better correlation with human judgments than BLEU. Uses WordNet for synonym lookup."},
+                {name:"BERTScore",col:C.purple,
+                 desc:"Computes similarity using contextual BERT embeddings. Captures semantic similarity beyond n-gram overlap. 'car' ≈ 'automobile'. Best correlation with human judgments."},
+                {name:"Perplexity",col:C.red,
+                 desc:"Measures how well a language model predicts a test set. PPL = exp(-1/N × Σlog P(wᵢ|context)). Lower = better. Used for LM evaluation, not end-task quality."},
+              ].map(m=>(
+                <div key={m.name} style={{marginBottom:8,background:C.s2,borderRadius:7,padding:"10px 12px",borderLeft:`2px solid ${m.col}`}}>
+                  <div style={{fontWeight:700,fontSize:13,color:m.col,marginBottom:3}}>{m.name}</div>
+                  <p style={{...S.p,fontSize:12,margin:0}}>{m.desc}</p>
+                </div>
+              ))}
+            </div>
+
+            <div style={S.card}>
+              <h3 style={S.h3}>Benchmarks & Leaderboards</h3>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                <thead><tr><th style={S.th}>Benchmark</th><th style={S.th}>Tasks</th><th style={S.th}>Purpose</th></tr></thead>
+                <tbody>
+                  {[
+                    ["GLUE","NLI, QA, similarity, sentiment","General language understanding (2018)"],
+                    ["SuperGLUE","Harder GLUE tasks","Models saturated GLUE; harder version (2019)"],
+                    ["SQuAD 2.0","Extractive QA + unanswerable","Reading comprehension"],
+                    ["MMLU","57 academic subjects","World knowledge + reasoning"],
+                    ["BIG-bench","200+ diverse tasks","Emergent capabilities of large models"],
+                    ["HELM","Holistic: accuracy + efficiency + fairness","Responsible model evaluation"],
+                  ].map(([n,t,p])=>(
+                    <tr key={n}><td style={{...S.td,fontWeight:600,color:C.accent,fontSize:12}}>{n}</td>
+                    <td style={{...S.td,color:C.muted,fontSize:11}}>{t}</td>
+                    <td style={{...S.td,color:C.muted,fontSize:11}}>{p}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ════════════════════ 15. INTERVIEWS ════════════════════ */}
+        {tab==="iq"&&(
+          <div>
+            <span style={S.label}>Chapter 15</span>
+            <h2 style={S.h2}>Interview Questions — All 35</h2>
+            <p style={S.p}>Complete NLP interview prep from junior to senior ML engineer. Click any question for a thorough answer.</p>
+            <div style={{background:C.s2,borderRadius:8,padding:10,marginBottom:20,display:"flex",gap:12,flexWrap:"wrap"}}>
+              {[["⚡ Fundamentals","7"],["🧠 Text Processing","6"],["🚀 Models","6"],["🎯 Deep & Applied","6"]].map(([c,n])=>(
+                <div key={c} style={{fontSize:11,fontFamily:"'Fira Code',monospace"}}>
+                  <span style={{fontWeight:700}}>{c}</span> <span style={{color:C.muted}}>{n} questions</span>
+                </div>
+              ))}
+            </div>
+            {Object.entries(IQ).map(([title,items])=>(
+              <IQSection key={title} title={title} items={items}/>
+            ))}
+          </div>
+        )}
+
+      </div>
+
+      <div style={{textAlign:"center",padding:"28px 16px",color:C.muted,fontFamily:"'Fira Code',monospace",
+        fontSize:10,borderTop:`1px solid ${C.border}`}}>
+        NLP Complete Guide · From TF-IDF to Transformers · Next: Vector Embeddings → Attention → BERT internals
+      </div>
+    </div>
+  );
+}
+
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
