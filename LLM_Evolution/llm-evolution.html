@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Architectural Odyssey: From BERT to GPT-5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:       #0a0c10;
+    --surface:  #111318;
+    --border:   #1e2229;
+    --accent:   #e8ff47;
+    --accent2:  #47c8ff;
+    --accent3:  #ff7c47;
+    --text:     #d4d8e2;
+    --muted:    #636878;
+    --heading:  #f0f2f8;
+    --serif:    'DM Serif Display', Georgia, serif;
+    --sans:     'Instrument Sans', sans-serif;
+    --mono:     'DM Mono', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.75;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── NOISE OVERLAY ─── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    opacity: 0.025;
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  /* ─── HERO ─── */
+  .hero {
+    padding: 7rem 2rem 5rem;
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .hero-eyebrow {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .hero-eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 32px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  .hero h1 {
+    font-family: var(--serif);
+    font-size: clamp(2.4rem, 6vw, 4rem);
+    color: var(--heading);
+    line-height: 1.1;
+    margin-bottom: 1.5rem;
+    font-style: italic;
+  }
+
+  .hero h1 em {
+    color: var(--accent);
+    font-style: normal;
+  }
+
+  .hero-sub {
+    font-size: 1.05rem;
+    color: var(--muted);
+    max-width: 560px;
+    line-height: 1.65;
+  }
+
+  .hero-meta {
+    margin-top: 2.5rem;
+    display: flex;
+    gap: 2rem;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    flex-wrap: wrap;
+  }
+
+  .hero-meta span { display: flex; align-items: center; gap: 0.4rem; }
+
+  /* ─── TIMELINE SPINE ─── */
+  .timeline {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 2rem 6rem;
+    position: relative;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: calc(2rem + 16px);
+    top: 0; bottom: 0;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, var(--border) 8%, var(--border) 92%, transparent);
+  }
+
+  /* ─── SECTION CARD ─── */
+  .section {
+    position: relative;
+    margin-bottom: 4rem;
+    padding-left: 3.5rem;
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.55s ease, transform 0.55s ease;
+  }
+
+  .section.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* dot on spine */
+  .section::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 1.1rem;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    background: var(--bg);
+    transition: background 0.3s;
+  }
+
+  .section:hover::before { background: var(--accent); }
+
+  .section-inner {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem 2.25rem;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+
+  .section:hover .section-inner {
+    border-color: #2e333d;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.45);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+  }
+
+  .section-title {
+    font-family: var(--serif);
+    font-size: 1.55rem;
+    color: var(--heading);
+    line-height: 1.2;
+  }
+
+  .section-year {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--accent);
+    background: rgba(232,255,71,0.08);
+    border: 1px solid rgba(232,255,71,0.2);
+    padding: 0.2rem 0.65rem;
+    border-radius: 99px;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    margin-top: 0.25rem;
+  }
+
+  .section-tag {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--accent2);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  /* ─── CONTENT ELEMENTS ─── */
+  p { margin-bottom: 0.9rem; color: var(--text); }
+
+  h3 {
+    font-family: var(--sans);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 1.5rem 0 0.75rem;
+  }
+
+  h3:first-of-type { margin-top: 0.5rem; }
+
+  /* spec grid */
+  .spec-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+  }
+
+  .spec-item {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.6rem 0.85rem;
+  }
+
+  .spec-label {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.2rem;
+  }
+
+  .spec-value {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    color: var(--accent2);
+    font-weight: 500;
+  }
+
+  /* tags */
+  .tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+  }
+
+  .tag {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 6px;
+    background: rgba(71,200,255,0.07);
+    border: 1px solid rgba(71,200,255,0.18);
+    color: var(--accent2);
+  }
+
+  .tag.orange {
+    background: rgba(255,124,71,0.07);
+    border-color: rgba(255,124,71,0.18);
+    color: var(--accent3);
+  }
+
+  .tag.green {
+    background: rgba(232,255,71,0.07);
+    border-color: rgba(232,255,71,0.18);
+    color: var(--accent);
+  }
+
+  /* callout box */
+  .callout {
+    border-left: 3px solid var(--accent);
+    padding: 0.75rem 1rem;
+    background: rgba(232,255,71,0.04);
+    border-radius: 0 8px 8px 0;
+    margin: 1rem 0;
+    font-size: 0.92rem;
+  }
+
+  .callout.blue {
+    border-color: var(--accent2);
+    background: rgba(71,200,255,0.04);
+  }
+
+  .callout.orange {
+    border-color: var(--accent3);
+    background: rgba(255,124,71,0.04);
+  }
+
+  /* correction badge */
+  .correction {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: var(--mono);
+    font-size: 0.67rem;
+    color: var(--accent3);
+    background: rgba(255,124,71,0.08);
+    border: 1px solid rgba(255,124,71,0.2);
+    border-radius: 4px;
+    padding: 0.15rem 0.5rem;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+  }
+
+  /* new addition badge */
+  .new-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: var(--mono);
+    font-size: 0.67rem;
+    color: var(--accent);
+    background: rgba(232,255,71,0.08);
+    border: 1px solid rgba(232,255,71,0.2);
+    border-radius: 4px;
+    padding: 0.15rem 0.5rem;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+  }
+
+  /* ─── EVOLUTION TABLE ─── */
+  .evo-table-wrap {
+    max-width: 800px;
+    margin: 0 auto 4rem;
+    padding: 0 2rem;
+  }
+
+  .evo-table-wrap h2 {
+    font-family: var(--serif);
+    font-size: 1.8rem;
+    color: var(--heading);
+    margin-bottom: 1.5rem;
+  }
+
+  .evo-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+
+  .evo-table th {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .evo-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(30,34,41,0.6);
+    vertical-align: top;
+  }
+
+  .evo-table tr:last-child td { border-bottom: none; }
+
+  .evo-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .era-name {
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* ─── TAKEAWAYS ─── */
+  .takeaways {
+    max-width: 800px;
+    margin: 0 auto 5rem;
+    padding: 0 2rem;
+  }
+
+  .takeaways h2 {
+    font-family: var(--serif);
+    font-size: 1.8rem;
+    color: var(--heading);
+    margin-bottom: 1.5rem;
+  }
+
+  .takeaway-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+
+  .takeaway-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem 1.4rem;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+
+  .takeaway-card:hover {
+    border-color: #2e333d;
+    transform: translateY(-2px);
+  }
+
+  .takeaway-num {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+  }
+
+  .takeaway-title {
+    font-family: var(--sans);
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--heading);
+    margin-bottom: 0.4rem;
+  }
+
+  .takeaway-body {
+    font-size: 0.83rem;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+
+  /* ─── FOOTER QUOTE ─── */
+  .finale {
+    max-width: 700px;
+    margin: 0 auto 6rem;
+    padding: 3rem 2rem;
+    text-align: center;
+    position: relative;
+  }
+
+  .finale::before {
+    content: '';
+    display: block;
+    width: 60px;
+    height: 1px;
+    background: var(--border);
+    margin: 0 auto 2.5rem;
+  }
+
+  .finale blockquote {
+    font-family: var(--serif);
+    font-size: clamp(1.3rem, 3.5vw, 1.9rem);
+    font-style: italic;
+    color: var(--heading);
+    line-height: 1.4;
+    margin-bottom: 1.5rem;
+  }
+
+  .finale blockquote em { color: var(--accent); font-style: normal; }
+
+  .finale p {
+    font-size: 0.9rem;
+    color: var(--muted);
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+
+  /* ─── SCROLL NAV ─── */
+  .scroll-progress {
+    position: fixed;
+    top: 0; left: 0;
+    height: 2px;
+    background: var(--accent);
+    z-index: 999;
+    transition: width 0.1s linear;
+    width: 0%;
+  }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 600px) {
+    .timeline::before { left: calc(1.25rem + 16px); }
+    .section { padding-left: 2.75rem; }
+    .section::before { left: 8px; }
+    .timeline { padding: 0 1.25rem 4rem; }
+    .hero, .evo-table-wrap, .takeaways, .finale { padding-left: 1.25rem; padding-right: 1.25rem; }
+    .spec-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="scroll-progress" id="progress"></div>
+
+<!-- ─── HERO ─── -->
+<header class="hero">
+  <div class="hero-eyebrow">Architectural Odyssey · LLM Evolution</div>
+  <h1>From <em>BERT</em> to GPT-5 —<br/>The Evolution of Modern Language Models</h1>
+  <p class="hero-sub">A practitioner-focused deep dive into a decade of deliberate architectural pivots: from bidirectional encoding to agentic reasoning systems.</p>
+  <div class="hero-meta">
+    <span>⏱ 10 min read</span>
+    <span>📅 2025</span>
+    <span>🏷 NLP · Transformers · LLMs</span>
+  </div>
+</header>
+
+<!-- ─── INTRO ─── -->
+<div class="timeline">
+
+  <!-- ─── BERT ─── -->
+  <div class="section">
+    <div class="section-inner">
+      <div class="section-header">
+        <div>
+          <div class="section-tag">Era 1 · Encoder</div>
+          <div class="section-title">BERT: Deep Bidirectionality</div>
+        </div>
+        <div class="section-year">2018</div>
+      </div>
+
+      <p>BERT marked a major inflection point by introducing full <strong>bidirectional context</strong> using the Transformer encoder stack. Unlike earlier models that processed text left-to-right or right-to-left, BERT looked at both directions simultaneously, enabling a richer contextual understanding of language.</p>
+
+      <h3>Architecture Specs</h3>
+      <div class="spec-grid">
+        <div class="spec-item"><div class="spec-label">Layers (Base/Large)</div><div class="spec-value">12 / 24</div></div>
+        <div class="spec-item"><div class="spec-label">Parameters</div><div class="spec-value">110M / 340M</div></div>
+        <div class="spec-item"><div class="spec-label">Hidden Size</div><div class="spec-value">768 / 1024</div></div>
+        <div class="spec-item"><div class="spec-label">Attention Heads</div><div class="spec-value">12 / 16</div></div>
+        <div class="spec-item"><div class="spec-label">Context Window</div><div class="spec-value">512 tokens</div></div>
+        <div class="spec-item"><div class="spec-label">Norm Style</div><div class="spec-value">Post-LayerNorm</div></div>
+      </div>
+
+      <h3>Training Objectives</h3>
+      <div class="tag-row">
+        <span class="tag">Masked Language Modeling (MLM)</span>
+        <span class="tag">Next Sentence Prediction (NSP)</span>
+      </div>
+      <p>MLM selects 15% of tokens — 80% are replaced with [MASK], 10% with random tokens, 10% unchanged. NSP trains the model to classify whether sentence B actually follows sentence A.</p>
+
+      <h3>Dataset</h3>
+      <div class="tag-row">
+        <span class="tag orange">BooksCorpus ~800M words</span>
+        <span class="tag orange">English Wikipedia ~2.5B words</span>
+      </div>
+
+      <div class="callout">
+        <strong>Why it mattered:</strong> Solved the context bottleneck. Exceptional at semantic understanding, word disambiguation (e.g., "bank"), and downstream NLU tasks (GLUE benchmark).
+      </div>
+
+      <div class="callout blue">
+        <strong>RoBERTa follow-up (2019):</strong> <span class="new-badge">+ added</span> Facebook AI's RoBERTa showed that NSP was actually harmful — removing it and training longer on more data substantially improved BERT's performance. This validated that MLM alone was the core driver of BERT's strength.
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── GPT-1 ─── -->
+  <div class="section">
+    <div class="section-inner">
+      <div class="section-header">
+        <div>
+          <div class="section-tag">Era 2 · Decoder</div>
+          <div class="section-title">GPT-1: The Decoder Seed</div>
+        </div>
+        <div class="section-year">2018</div>
+      </div>
+
+      <p>While BERT focused on understanding, GPT-1 pivoted toward <strong>generation</strong>, using a decoder-only Transformer with causal (left-to-right) masking. It introduced the pre-train → fine-tune paradigm that would define the next several years.</p>
+
+      <h3>Architecture Specs</h3>
+      <div class="spec-grid">
+        <div class="spec-item"><div class="spec-label">Layers</div><div class="spec-value">12</div></div>
+        <div class="spec-item"><div class="spec-label">Parameters</div><div class="spec-value">~117M</div></div>
+        <div class="spec-item"><div class="spec-label">Hidden Size</div><div class="spec-value">768</div></div>
+        <div class="spec-item"><div class="spec-label">Attention Heads</div><div class="spec-value">12</div></div>
+        <div class="spec-item"><div class="spec-label">Context Window</div><div class="spec-value">512 tokens</div></div>
+        <div class="spec-item"><div class="spec-label">Norm Style</div><div class="spec-value">Post-LayerNorm</div></div>
+      </div>
+
+      <h3>Training Objective</h3>
+      <div class="tag-row"><span class="tag">Causal Language Modeling (CLM)</span></div>
+      <p>Predict the next token given all previous tokens. Simple, yet powerful.</p>
+
+      <h3>Dataset</h3>
+      <div class="tag-row"><span class="tag orange">BooksCorpus ~4–5GB</span></div>
+
+      <div class="callout">
+        <strong>Key design choices:</strong> Causal masking (unidirectional), weight tying between input and output embeddings, post-norm architecture.
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── GPT-2 ─── -->
+  <div class="section">
+    <div class="section-inner">
+      <div class="section-header">
+        <div>
+          <div class="section-tag">Era 3 · Scaling</div>
+          <div class="section-title">GPT-2: Scaling + Pre-Normalization</div>
+        </div>
+        <div class="section-year">2019</div>
+      </div>
+
+      <p>GPT-2 demonstrated that <strong>scale + better data = emergent intelligence</strong>. It was one of the first models OpenAI deliberately withheld from full release, citing misuse concerns — itself a cultural milestone.</p>
+
+      <h3>Architecture Specs</h3>
+      <div class="spec-grid">
+        <div class="spec-item"><div class="spec-label">Parameters</div><div class="spec-value">Up to 1.5B</div></div>
+        <div class="spec-item"><div class="spec-label">Context Window</div><div class="spec-value">1,024 tokens</div></div>
+        <div class="spec-item"><div class="spec-label">Vocabulary</div><div class="spec-value">50,257 (BPE)</div></div>
+        <div class="spec-item"><div class="spec-label">Norm Style</div><div class="spec-value">Pre-LayerNorm ✦</div></div>
+      </div>
+
+      <h3>Key Architectural Improvements</h3>
+      <div class="tag-row">
+        <span class="tag green">Pre-LayerNorm</span>
+        <span class="tag green">Residual Scaling 1/√N</span>
+        <span class="tag">Larger context</span>
+      </div>
+      <p>Moving normalization <em>before</em> each sub-layer (pre-norm) dramatically improved gradient stability during training at scale. Residual streams were scaled by 1/√N to prevent blow-up as depth increased.</p>
+
+      <h3>Dataset</h3>
+      <div class="tag-row"><span class="tag orange">WebText ~40GB (curated Reddit-linked data)</span></div>
+
+      <div class="callout">
+        <strong>Breakthrough:</strong> Zero-shot learning — prompt alone could guide task behavior without any fine-tuning. Pre-norm became the standard for all subsequent large Transformer scaling.
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── GPT-3 ─── -->
+  <div class="section">
+    <div class="section-inner">
+      <div class="section-header">
+        <div>
+          <div class="section-tag">Era 4 · Generalization</div>
+          <div class="section-title">GPT-3: Few-Shot Learning</div>
+        </div>
+        <div class="section-year">2020</div>
+      </div>
+
+      <p>GPT-3 scaled massively and introduced <strong>in-context learning</strong> as a core paradigm — a model that adapts to tasks simply by reading examples in the prompt, with no gradient updates.</p>
+
+      <h3>Architecture Specs</h3>
+      <div class="spec-grid">
+        <div class="spec-item"><div class="spec-label">Parameters</div><div class="spec-value">175B</div></div>
+        <div class="spec-item"><div class="spec-label">Layers</div><div class="spec-value">96</div></div>
+        <div class="spec-item"><div class="spec-label">Attention Heads</div><div class="spec-value">96</div></div>
+        <div class="spec-item"><div class="spec-label">Head Dimension</div><div class="spec-value">128</div></div>
+      </div>
+
+      <h3>Sparse Attention</h3>
+      <div class="tag-row">
+        <span class="tag">Dense Attention (global)</span>
+        <span class="tag">Sparse / Local Attention</span>
+      </div>
+      <p>Alternating dense and sparse attention layers reduced the quadratic O(n²) attention complexity, enabling longer sequences to be handled more efficiently at this parameter scale.</p>
+
+      <h3>Dataset</h3>
+      <div class="tag-row">
+        <span class="tag orange">Filtered Common Crawl</span>
+        <span class="tag orange">WebText2</span>
+        <span class="tag orange">Books · Wikipedia</span>
+      </div>
+
+      <div class="callout">
+        <strong>Paradigm shift:</strong> From fine-tuning → prompting. You no longer needed to retrain a model for each task — you could describe the task in natural language.
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── GPT-4 ─── -->
+  <div class="section">
+    <div class="section-inner">
+      <div class="section-header">
+        <div>
+          <div class="section-tag">Era 5 · Efficiency + Alignment</div>
+          <div class="section-title">GPT-4: MoE, Multimodality & RLHF</div>
+        </div>
+        <div class="section-year">2023</div>
+      </div>
+
+      <p>GPT-4 tackled fundamental scaling limits using <strong>Mixture of Experts (MoE)</strong> and introduced multimodal capabilities. OpenAI has not officially confirmed architectural details — the figures below are widely reported estimates.</p>
+
+      <h3>Architecture (Estimated)</h3>
+      <div class="spec-grid">
+        <div class="spec-item"><div class="spec-label">Total Parameters</div><div class="spec-value">~1.8T*</div></div>
+        <div class="spec-item"><div class="spec-label">Active per Token</div><div class="spec-value">~2 experts</div></div>
+        <div class="spec-item"><div class="spec-label">Experts / Layer</div><div class="spec-value">~16*</div></div>
+        <div class="spec-item"><div class="spec-label">Modalities</div><div class="spec-value">Text + Image</div></div>
+      </div>
+      <p style="font-size:0.8rem;color:var(--muted);">* Not officially confirmed. Architecture details are estimated from third-party analyses. <span class="correction">⚠ unverified</span></p>
+
+      <h3>Mixture of Experts</h3>
+      <p>In MoE, only a subset of the network (the "experts") activates for each token. This allows massive total model capacity while keeping per-token compute manageable — a key breakthrough for efficient scaling beyond 100B parameters.</p>
+
+      <h3>Alignment Techniques</h3>
+      <div class="tag-row">
+        <span class="tag green">RLHF (PPO)</span>
+        <span class="tag green">Reward Model</span>
+        <span class="tag green">KL Penalty</span>
+        <span class="tag green">Constitutional AI / RLAIF</span>
+      </div>
+
+      <div class="callout blue">
+        <strong>Constitutional AI (RLAIF):</strong> <span class="new-badge">+ added</span> Anthropic pioneered a complementary alignment technique where an AI model critiques and revises its own outputs against a set of principles ("a constitution"), reducing reliance on large-scale human labeling. RLAIF (RL from AI Feedback) is now widely studied alongside RLHF across the industry.
+      </div>
+
+      <div class="callout">
+        <strong>Why it mattered:</strong> Solved the knowledge vs. compute tradeoff — massive capacity without proportionally massive inference cost. Reliability and safety improved significantly over GPT-3.
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── GPT-5 ─── -->
+  <div class="section">
+    <div class="section-inner">
+      <div class="section-header">
+        <div>
+          <div class="section-tag">Era 6 · Reasoning + Agency</div>
+          <div class="section-title">GPT-5: System 2 Reasoning & Agentic Intelligence</div>
+        </div>
+        <div class="section-year">2025</div>
+      </div>
+
+      <p>GPT-5 represents a fundamental shift — from static next-token prediction to <strong>dynamic reasoning systems</strong> that allocate compute at inference time. The model can think before it responds.</p>
+
+      <h3>Core Innovation: Inference-Time Compute Scaling</h3>
+      <div class="tag-row">
+        <span class="tag green">Chain-of-Thought (internal)</span>
+        <span class="tag green">Tree-of-Thought Search</span>
+        <span class="tag green">Self-Correction</span>
+      </div>
+      <p>Rather than spending all compute during training, the model allocates reasoning steps dynamically at inference. This enables verification, backtracking, and pruning of candidate reasoning chains — analogous to Kahneman's "System 2" deliberate thinking.</p>
+
+      <h3>Context Window</h3>
+      <div class="spec-grid">
+        <div class="spec-item"><div class="spec-label">Reported Max</div><div class="spec-value">128K tokens</div></div>
+        <div class="spec-item"><div class="spec-label">Variant-dependent</div><div class="spec-value">Up to ~1M*</div></div>
+      </div>
+      <p style="font-size:0.8rem;color:var(--muted);">* The 1M-token context window is associated with specific model variants and Google's Gemini line. GPT-5's official context varies by deployment configuration. <span class="correction">⚠ clarified</span></p>
+
+      <h3>Training Advances</h3>
+      <div class="tag-row">
+        <span class="tag">Synthetic Reasoning Datasets</span>
+        <span class="tag">RL on Reasoning Traces</span>
+        <span class="tag">Tool-Integrated Training</span>
+      </div>
+
+      <h3>Agentic Features</h3>
+      <div class="tag-row">
+        <span class="tag green">Multi-step planning</span>
+        <span class="tag green">Code execution</span>
+        <span class="tag green">API / web tool use</span>
+        <span class="tag green">Autonomous workflows</span>
+      </div>
+
+      <div class="callout">
+        <strong>Why it mattered:</strong> Addresses the reasoning bottleneck and enables long-horizon task execution. Models are no longer just answering — they are planning, executing, and correcting.
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── BROADER LANDSCAPE ─── -->
+  <div class="section">
+    <div class="section-inner">
+      <div class="section-header">
+        <div>
+          <div class="section-tag">Broader Landscape</div>
+          <div class="section-title">Beyond OpenAI: The Full Ecosystem</div>
+        </div>
+        <div class="section-year">2019 – 2025</div>
+      </div>
+
+      <p><span class="new-badge">+ added</span> The BERT→GPT lineage is the most studied, but the LLM landscape evolved across multiple parallel tracks. Understanding these is essential for practitioners.</p>
+
+      <h3>Key Parallel Developments</h3>
+
+      <div class="callout blue">
+        <strong>T5 (Google, 2019):</strong> Reframed every NLP task as a text-to-text problem ("translate English to French: ..."), unifying the field under a single encoder-decoder architecture and training objective.
+      </div>
+
+      <div class="callout blue">
+        <strong>PaLM / Gemini (Google, 2022–2024):</strong> PaLM introduced breakthrough few-shot performance via chain-of-thought prompting at scale. Gemini 1.5 Pro introduced the 1M-token context window using a sparse Mixture-of-Experts architecture — the actual origin of million-token context.
+      </div>
+
+      <div class="callout blue">
+        <strong>LLaMA (Meta, 2023–2025):</strong> Open-weight models that proved you could match frontier performance at 7B–70B parameter scales with better data curation. Transformed the open-source ecosystem.
+      </div>
+
+      <div class="callout orange">
+        <strong>Claude (Anthropic, 2023–2025):</strong> Pioneer of Constitutional AI (RLAIF) — alignment without purely human labeling. Claude 3 Opus matched GPT-4 on major benchmarks. Introduced long-context windows (200K tokens) for document-level reasoning earlier than most competitors.
+      </div>
+    </div>
+  </div>
+
+</div><!-- /timeline -->
+
+<!-- ─── EVOLUTION TABLE ─── -->
+<div class="evo-table-wrap">
+  <h2>Evolution at a Glance</h2>
+  <table class="evo-table">
+    <thead>
+      <tr>
+        <th>Model</th>
+        <th>Year</th>
+        <th>Focus Area</th>
+        <th>Core Breakthrough</th>
+        <th>Paradigm</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="era-name">BERT</span></td>
+        <td>2018</td>
+        <td>Understanding</td>
+        <td>Bidirectional encoding</td>
+        <td>Fine-tune</td>
+      </tr>
+      <tr>
+        <td><span class="era-name">GPT-1</span></td>
+        <td>2018</td>
+        <td>Generation</td>
+        <td>Pre-train → fine-tune</td>
+        <td>Fine-tune</td>
+      </tr>
+      <tr>
+        <td><span class="era-name">GPT-2</span></td>
+        <td>2019</td>
+        <td>Scaling</td>
+        <td>Zero-shot learning, pre-norm</td>
+        <td>Prompting</td>
+      </tr>
+      <tr>
+        <td><span class="era-name">GPT-3</span></td>
+        <td>2020</td>
+        <td>Generalization</td>
+        <td>Few-shot in-context learning</td>
+        <td>Prompting</td>
+      </tr>
+      <tr>
+        <td><span class="era-name">GPT-4</span></td>
+        <td>2023</td>
+        <td>Efficiency + Alignment</td>
+        <td>MoE + RLHF + Multimodal</td>
+        <td>Instruction / RLHF</td>
+      </tr>
+      <tr>
+        <td><span class="era-name">GPT-5</span></td>
+        <td>2025</td>
+        <td>Reasoning + Agency</td>
+        <td>Inference-time compute scaling</td>
+        <td>Agentic</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ─── TAKEAWAYS ─── -->
+<div class="takeaways">
+  <h2>Key Takeaways for Practitioners</h2>
+  <div class="takeaway-grid">
+    <div class="takeaway-card">
+      <div class="takeaway-num">01 · Scaling</div>
+      <div class="takeaway-title">Scaling Has Evolved</div>
+      <div class="takeaway-body">Then: parameters + data. Now: inference-time compute + reasoning loops. More thinking at test time often beats bigger weights.</div>
+    </div>
+    <div class="takeaway-card">
+      <div class="takeaway-num">02 · Architecture</div>
+      <div class="takeaway-title">Architecture Choices Matter</div>
+      <div class="takeaway-body">Pre-norm enables stable scaling. MoE enables efficient capacity. Reasoning loops enable better decisions. Each solved a real bottleneck.</div>
+    </div>
+    <div class="takeaway-card">
+      <div class="takeaway-num">03 · Data</div>
+      <div class="takeaway-title">Data Strategy Shifted</div>
+      <div class="takeaway-body">Curated → web-scale → synthetic reasoning data. The frontier is now dominated by high-quality synthetic traces for reasoning tasks.</div>
+    </div>
+    <div class="takeaway-card">
+      <div class="takeaway-num">04 · Prompting</div>
+      <div class="takeaway-title">Prompting Is Programming</div>
+      <div class="takeaway-body">Few-shot examples, chain-of-thought, tool chaining, structured XML — prompt engineering is now a first-class engineering discipline.</div>
+    </div>
+    <div class="takeaway-card">
+      <div class="takeaway-num">05 · Agency</div>
+      <div class="takeaway-title">Models Are Agents</div>
+      <div class="takeaway-body">Not just answering: planning, tool use, executing, correcting. System design — not just model selection — is the core challenge now.</div>
+    </div>
+    <div class="takeaway-card">
+      <div class="takeaway-num">06 · Ecosystem</div>
+      <div class="takeaway-title">OpenAI ≠ Full Picture</div>
+      <div class="takeaway-body">Claude, Gemini, LLaMA, Mistral — the ecosystem is plural. Each lineage contributes distinct ideas: RLAIF, MoE, open weights, long context.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── FINALE ─── -->
+<div class="finale">
+  <blockquote>
+    "From pattern recognition → language generation → reasoning systems → <em>autonomous agents</em>"
+  </blockquote>
+  <p>We are no longer just building models that predict text. We are building systems that can think, act, and collaborate. The next wave isn't just smarter models — it's smarter systems built on top of them.</p>
+</div>
+
+<script>
+  // Scroll progress bar
+  window.addEventListener('scroll', () => {
+    const doc = document.documentElement;
+    const scrolled = doc.scrollTop / (doc.scrollHeight - doc.clientHeight);
+    document.getElementById('progress').style.width = (scrolled * 100) + '%';
+  });
+
+  // Intersection observer for section reveals
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.08 });
+
+  document.querySelectorAll('.section').forEach(s => observer.observe(s));
+
+
+
+</script>
+</body>
+</html>
